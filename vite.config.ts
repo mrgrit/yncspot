@@ -9,4 +9,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Cloudflare 터널 등 외부 호스트에서의 접속 허용 (데모용)
+  server: { host: true, allowedHosts: true },
+  preview: { host: true, allowedHosts: true, port: 4173 },
 });

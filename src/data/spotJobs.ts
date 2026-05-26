@@ -79,7 +79,8 @@ export function buildSpotJobs(employers: Employer[]): SpotJob[] {
     const category = SPOT_CATEGORY_BY_EMPLOYER[employer.category];
     const title = pick(SPOT_JOB_TITLES[category]);
     const durationMin = pick([180, 240, 300, 360, 420, 480]);
-    const baseWage = int(40, 90) * 1000;
+    // 기존 40~90k 대비 약 2/3~3/4 수준으로 하향 (대구 단기 일감 현실화)
+    const baseWage = int(28, 63) * 1000;
     const created = weightedSignupDate();
     const scheduled = dateBetween(iso(created), "2026-06-10T09:00:00.000Z");
 
@@ -94,7 +95,7 @@ export function buildSpotJobs(employers: Employer[]): SpotJob[] {
       durationMin,
       baseWage,
       requiredGrade: weighted(GRADE_REQ_WEIGHTS),
-      location: `부산광역시 ${employer.district} 일원`,
+      location: `대구광역시 ${employer.district} 일원`,
       status,
       createdAt: iso(created),
       scheduledAt: iso(scheduled),

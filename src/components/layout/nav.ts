@@ -3,6 +3,7 @@ import {
   Building2,
   BookOpen,
   FileBarChart,
+  GraduationCap,
   Home,
   LayoutDashboard,
   MessageCircle,
@@ -26,6 +27,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin/spot-jobs", label: "Spot Work", icon: Sparkles },
   { to: "/admin/companies", label: "협약기업", icon: Building2 },
   { to: "/admin/placements", label: "취업매칭", icon: Target },
+  { to: "/admin/graduates", label: "수료생", icon: GraduationCap },
   { to: "/admin/reports", label: "보고서", icon: FileBarChart },
 ];
 

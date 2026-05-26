@@ -1,24 +1,26 @@
-import { useMemo } from "react";
-import { Award, Briefcase, Building2, Sparkles, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Award, Briefcase, Building2, GraduationCap, Search, Sparkles, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/feedback";
-import { companyStats, learningSummary, userBadges } from "@/lib/selectors";
-import {
-  CONTRACT_TYPE_LABEL,
-  GRADE_LABEL,
-  TRACK_LABEL,
-  formatDate,
-} from "@/lib/utils";
+import { companyStats, graduateRows } from "@/lib/selectors";
+import { CONTRACT_TYPE_LABEL, GRADE_LABEL, TRACK_LABEL, formatDate } from "@/lib/utils";
+import type { SpotGrade, Track } from "@/types";
 
 export default function CompanyPortal() {
   const { account } = useAuth();
   const { db } = useData();
   const company = db.companies.find((c) => c.id === account?.companyId) ?? db.companies[0];
+
+  const [q, setQ] = useState("");
+  const [track, setTrack] = useState<Track | "all">("all");
+  const [grade, setGrade] = useState<SpotGrade | "all">("all");
 
   const stats = useMemo(() => companyStats(db, company.id), [db, company]);
   const postings = useMemo(
@@ -26,17 +28,22 @@ export default function CompanyPortal() {
     [db, company]
   );
 
-  const talent = useMemo(() => {
-    return db.users
-      .filter((u) => u.status === "completed" || u.status === "employed")
-      .map((u) => ({
-        u,
-        badges: userBadges(db, u.id).length,
-        learn: learningSummary(db, u.id),
-      }))
-      .sort((a, b) => b.badges - a.badges || b.learn.completedCount - a.learn.completedCount)
-      .slice(0, 12);
-  }, [db]);
+  const allGrads = useMemo(() => graduateRows(db), [db]);
+  const talent = useMemo(
+    () =>
+      allGrads
+        .filter(
+          (r) =>
+            (q === "" ||
+              r.user.name.includes(q) ||
+              r.user.interests.some((i) => i.includes(q)) ||
+              (r.capstone ?? "").includes(q)) &&
+            (track === "all" || r.user.track === track) &&
+            (grade === "all" || r.user.spotGrade === grade)
+        )
+        .sort((a, b) => b.badges - a.badges || b.completedCount - a.completedCount),
+    [allGrads, q, track, grade]
+  );
 
   return (
     <div>
@@ -48,37 +55,75 @@ export default function CompanyPortal() {
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={<Briefcase className="h-4 w-4" />} label="채용 공고" value={stats.postings} />
         <Stat icon={<Users className="h-4 w-4" />} label="지원자" value={stats.applicants} />
-        <Stat icon={<Building2 className="h-4 w-4" />} label="매칭" value={stats.matched} />
+        <Stat icon={<GraduationCap className="h-4 w-4" />} label="수료 인재풀" value={allGrads.length} />
         <Stat icon={<Award className="h-4 w-4" />} label="채용 확정" value={stats.hired} highlight />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* 인재 풀 */}
+        {/* 인재 풀 검색 */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>인재 풀 (이수자)</CardTitle>
+            <CardTitle>인재 풀 검색 (수료생 {talent.length}명)</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
+              <div className="relative sm:col-span-2">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="이름·관심사·캡스톤 검색"
+                  className="pl-9"
+                />
+              </div>
+              <Select value={track} onChange={(e) => setTrack(e.target.value as Track | "all")}>
+                <option value="all">전체 트랙</option>
+                <option value="try_job">Try Job</option>
+                <option value="get_job">Get Job</option>
+              </Select>
+              <Select value={grade} onChange={(e) => setGrade(e.target.value as SpotGrade | "all")}>
+                <option value="all">전체 등급</option>
+                {Object.entries(GRADE_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </Select>
+            </div>
+
             {talent.length === 0 ? (
-              <EmptyState title="이수자가 없습니다" />
+              <EmptyState title="조건에 맞는 수료생이 없습니다" />
             ) : (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {talent.map(({ u, badges, learn }) => (
-                  <div key={u.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
-                    <Avatar name={u.name} color={u.avatarColor} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-800">{u.name}</p>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                        <Badge variant={u.track === "try_job" ? "try" : "get"}>
-                          {TRACK_LABEL[u.track]}
-                        </Badge>
-                        <span className="text-xs text-slate-400">
-                          {GRADE_LABEL[u.spotGrade]}
-                        </span>
+              <div className="grid max-h-[28rem] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                {talent.slice(0, 30).map((r) => (
+                  <div key={r.user.id} className="rounded-2xl border border-slate-100 p-3">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={r.user.name} color={r.user.avatarColor} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate text-sm font-semibold text-slate-800">{r.user.name}</p>
+                          {r.employed && <Badge variant="success">취업</Badge>}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1">
+                          <Badge variant={r.user.track === "try_job" ? "try" : "get"}>
+                            {TRACK_LABEL[r.user.track]}
+                          </Badge>
+                          <span className="text-xs text-slate-400">{GRADE_LABEL[r.user.spotGrade]}</span>
+                        </div>
                       </div>
-                      <p className="mt-0.5 text-xs text-slate-400">
-                        이수 {learn.completedCount}과목 · 배지 {badges}개 · {u.interests.slice(0, 2).join("·")}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">
+                      이수 {r.completedCount}과목 · {r.hours}h · 배지 {r.badges}개
+                    </p>
+                    {r.capstone && (
+                      <p className="mt-1 flex items-start gap-1 text-xs text-brand-700">
+                        <Sparkles className="mt-0.5 h-3 w-3 shrink-0" /> 캡스톤: {r.capstone}
                       </p>
+                    )}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {r.user.interests.slice(0, 3).map((i) => (
+                        <span key={i} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                          {i}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ))}

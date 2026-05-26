@@ -14,24 +14,24 @@ interface CompanySeed {
 }
 
 const COMPANY_SEEDS: CompanySeed[] = [
-  { name: "쿠팡 CFS", industry: "물류", size: "대기업", address: "부산광역시 강서구 미음산단", matchedDepartments: ["i-경영회계", "물류관리"] },
-  { name: "현대그린푸드", industry: "식음료", size: "대기업", address: "경기도 용인시 기흥구", matchedDepartments: ["식음료/베이커리"] },
+  { name: "쿠팡 CFS", industry: "물류", size: "대기업", address: "대구광역시 달성군 구지면", matchedDepartments: ["i-경영회계", "물류관리"] },
+  { name: "현대그린푸드", industry: "식음료", size: "대기업", address: "대구광역시 수성구", matchedDepartments: ["식음료/베이커리"] },
   { name: "풀무원", industry: "식음료", size: "대기업", address: "서울특별시 강남구", matchedDepartments: ["식음료/베이커리"] },
   { name: "숨고", industry: "프리랜서 플랫폼", size: "중견기업", address: "서울특별시 강남구", matchedDepartments: ["디자인"] },
   { name: "크몽", industry: "프리랜서 플랫폼", size: "중견기업", address: "서울특별시 서초구", matchedDepartments: ["디자인", "콘텐츠제작"] },
-  { name: "BNK금융그룹", industry: "금융", size: "대기업", address: "부산광역시 남구 문현동", matchedDepartments: ["i-경영회계"] },
-  { name: "부산은행", industry: "금융", size: "대기업", address: "부산광역시 남구 문현동", matchedDepartments: ["i-경영회계", "고객서비스"] },
-  { name: "르노코리아", industry: "제조", size: "대기업", address: "부산광역시 강서구 신호동", matchedDepartments: ["생산관리"] },
-  { name: "HD현대중공업", industry: "조선·중공업", size: "대기업", address: "울산광역시 동구", matchedDepartments: ["생산관리"] },
-  { name: "이마트", industry: "유통", size: "대기업", address: "부산광역시 해운대구", matchedDepartments: ["유통/판매", "고객서비스"] },
-  { name: "신세계백화점", industry: "유통", size: "대기업", address: "부산광역시 해운대구 센텀", matchedDepartments: ["유통/판매"] },
-  { name: "부산교통공사", industry: "공공·운수", size: "공공기관", address: "부산광역시 부산진구", matchedDepartments: ["고객서비스"] },
+  { name: "DGB금융그룹", industry: "금융", size: "대기업", address: "대구광역시 수성구", matchedDepartments: ["i-경영회계"] },
+  { name: "iM뱅크(대구은행)", industry: "금융", size: "대기업", address: "대구광역시 북구", matchedDepartments: ["i-경영회계", "고객서비스"] },
+  { name: "에스엘(SL)", industry: "자동차부품 제조", size: "대기업", address: "대구광역시 달서구", matchedDepartments: ["생산관리"] },
+  { name: "평화정공", industry: "자동차부품", size: "중견기업", address: "대구광역시 달성군", matchedDepartments: ["생산관리"] },
+  { name: "이마트 만촌점", industry: "유통", size: "대기업", address: "대구광역시 수성구", matchedDepartments: ["유통/판매", "고객서비스"] },
+  { name: "신세계백화점 대구점", industry: "유통", size: "대기업", address: "대구광역시 동구 신천동", matchedDepartments: ["유통/판매"] },
+  { name: "대구교통공사", industry: "공공·운수", size: "공공기관", address: "대구광역시 남구", matchedDepartments: ["고객서비스"] },
   { name: "동원F&B", industry: "식음료", size: "대기업", address: "서울특별시 서초구", matchedDepartments: ["식음료/베이커리"] },
-  { name: "부산항만공사", industry: "물류·항만", size: "공공기관", address: "부산광역시 중구 중앙동", matchedDepartments: ["물류관리"] },
+  { name: "한국가스공사", industry: "공공·에너지", size: "공공기관", address: "대구광역시 동구 혁신도시", matchedDepartments: ["i-경영회계"] },
   { name: "카카오모빌리티", industry: "IT 플랫폼", size: "중견기업", address: "경기도 성남시 분당구", matchedDepartments: ["콘텐츠제작", "데이터"] },
-  { name: "한국전력공사 부산본부", industry: "공공·에너지", size: "공공기관", address: "부산광역시 부산진구", matchedDepartments: ["i-경영회계"] },
-  { name: "롯데마트", industry: "유통", size: "대기업", address: "부산광역시 동구", matchedDepartments: ["유통/판매", "고객서비스"] },
-  { name: "부산정보산업진흥원", industry: "공공·IT", size: "공공기관", address: "부산광역시 해운대구 센텀", matchedDepartments: ["AI", "콘텐츠제작"] },
+  { name: "한국전력공사 대구본부", industry: "공공·에너지", size: "공공기관", address: "대구광역시 중구", matchedDepartments: ["i-경영회계"] },
+  { name: "롯데마트 율하점", industry: "유통", size: "대기업", address: "대구광역시 동구", matchedDepartments: ["유통/판매", "고객서비스"] },
+  { name: "대구디지털혁신진흥원", industry: "공공·IT", size: "공공기관", address: "대구광역시 동구", matchedDepartments: ["AI", "콘텐츠제작"] },
 ];
 
 const CONTACT_SURNAMES = ["김", "이", "박", "최", "정", "강", "윤", "장"];

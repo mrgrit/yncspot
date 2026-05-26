@@ -8,7 +8,7 @@
 import type { SpotGrade, Track, User, UserStatus } from "@/types";
 import {
   AVATAR_COLORS,
-  BUSAN_ADDRESSES,
+  DAEGU_ADDRESSES,
   GIVEN_NAMES,
   SURNAMES,
   INTERESTS,
@@ -119,7 +119,7 @@ export function buildUsers(): User[] {
       phone: `010-${int(2000, 9999)}-${int(1000, 9999)}`,
       birthDate: isoDate(dateBetween("1992-01-01", "2008-12-31")),
       gender: chance(0.52) ? "male" : "female",
-      address: pick(BUSAN_ADDRESSES),
+      address: pick(DAEGU_ADDRESSES),
       track,
       status,
       spotGrade: grade,

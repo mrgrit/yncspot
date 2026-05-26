@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Check, MapPin, Star, Timer, Wallet } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Bot, Check, MapPin, Star, Timer, Wallet } from "lucide-react";
 import { useMe } from "@/hooks/useMe";
 import { useData } from "@/contexts/DataContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +21,9 @@ import {
 
 export default function SpotDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const me = useMe();
-  const { db, applySpot, appliedSpots } = useData();
+  const { db, applySpot, appliedSpots, submittedAiJobs } = useData();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -50,6 +51,7 @@ export default function SpotDetail() {
   const eligible =
     GRADE_ORDER.indexOf(me.spotGrade) >= GRADE_ORDER.indexOf(job.requiredGrade);
   const applied = appliedSpots.has(job.id);
+  const aiSubmitted = submittedAiJobs.has(job.id);
   const nextSeq = me.spotCount + 1;
   const reward = calcReward(job.baseWage, nextSeq <= 3 ? (nextSeq as 1 | 2 | 3) : null);
 
@@ -89,25 +91,59 @@ export default function SpotDetail() {
           <p className="mt-4 text-sm leading-relaxed text-slate-600">{job.description}</p>
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            <Button
-              variant="accent"
-              disabled={applied || job.status !== "open"}
-              onClick={() => setOpen(true)}
-            >
-              {applied ? (
-                <>
-                  <Check className="h-4 w-4" /> 신청완료
-                </>
-              ) : (
-                "신청하기"
-              )}
-            </Button>
+            {job.aiTask ? (
+              <Button
+                variant="accent"
+                disabled={aiSubmitted}
+                onClick={() => navigate(`/spot/${job.id}/work`)}
+              >
+                {aiSubmitted ? (
+                  <>
+                    <Check className="h-4 w-4" /> 제출완료
+                  </>
+                ) : (
+                  <>
+                    <Bot className="h-4 w-4" /> 작업 수행하기
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                variant="accent"
+                disabled={applied || job.status !== "open"}
+                onClick={() => setOpen(true)}
+              >
+                {applied ? (
+                  <>
+                    <Check className="h-4 w-4" /> 신청완료
+                  </>
+                ) : (
+                  "신청하기"
+                )}
+              </Button>
+            )}
             {!eligible && (
               <span className="text-sm text-warning">
-                {GRADE_LABEL[job.requiredGrade]} 등급부터 신청 가능합니다
+                {GRADE_LABEL[job.requiredGrade]} 등급부터 {job.aiTask ? "수행" : "신청"} 가능합니다
               </span>
             )}
           </div>
+
+          {job.aiTask && (
+            <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/40 p-4">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="brand">
+                  <Bot className="h-3 w-3" /> AI 검수
+                </Badge>
+                <Badge variant="outline">{job.aiTask.domainLabel}</Badge>
+                <Badge variant="outline">예상 {job.aiTask.estimatedMin}분</Badge>
+                <Badge variant="accent">건당 {formatCurrency(job.baseWage)}</Badge>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                좌측 가이드를 보며 우측 결과 양식을 작성해 제출하는 AI 콘텐츠 검수 작업입니다.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

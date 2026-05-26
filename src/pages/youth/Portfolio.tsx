@@ -138,8 +138,15 @@ export default function Portfolio() {
               <EmptyState title="등록된 프로젝트가 없습니다" icon={<FolderGit2 className="h-6 w-6" />} />
             ) : (
               pf.projects.map((pr) => (
-                <div key={pr.id} className="rounded-2xl border border-slate-100 p-3">
-                  <p className="text-sm font-medium text-slate-800">{pr.title}</p>
+                <div
+                  key={pr.id}
+                  className={`rounded-2xl border p-3 ${pr.kind === "capstone" ? "border-brand-200 bg-brand-50/40" : "border-slate-100"}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-slate-800">{pr.title}</p>
+                    {pr.kind === "capstone" && <Badge variant="brand">캡스톤</Badge>}
+                    {pr.kind === "practice" && <Badge variant="outline">실습</Badge>}
+                  </div>
                   <p className="mt-0.5 text-xs text-slate-500">{pr.description}</p>
                   <p className="mt-1 text-[11px] text-slate-400">{formatDate(pr.createdAt)}</p>
                 </div>
@@ -148,6 +155,22 @@ export default function Portfolio() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 과정 중 배운 것 (수료생 보존) */}
+      {pf?.learnings && pf.learnings.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>과정 중 배운 것</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1.5">
+              {pf.learnings.map((l) => (
+                <Badge key={l} variant="brand">{l}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 배지 갤러리 */}
       <Card>

@@ -35,9 +35,12 @@ import type {
   UserStatus,
 } from "@/types";
 import {
+  CAPSTONE_THEME,
   CHAT_SAMPLES,
   GIVEN_NAMES,
+  LEARNINGS,
   MENTORING_TOPICS,
+  PRACTICE_PROJECTS,
   SPOT_FEEDBACKS,
   SURNAMES,
   chance,
@@ -67,6 +70,7 @@ import {
 } from "./courses";
 import { buildCompanies } from "./companies";
 import { buildEmployers, buildSpotJobs } from "./spotJobs";
+import { buildAiEmployers, buildAiSpotJobs } from "./aiJobs";
 
 const NOW = new Date("2026-05-25T12:00:00.000Z").getTime();
 const koName = () => `${pick(SURNAMES)}${pick(GIVEN_NAMES)}`;
@@ -513,18 +517,47 @@ function generatePortfolios(
   return users.map((u) => {
     const id = nextId();
     const uBadges = badgesByUser.get(u.id) ?? [];
-    const advanced = ["completed", "employed", "enrolled"].includes(u.status);
-    const nProj = advanced ? int(1, 3) : int(0, 1);
-    const projects: PortfolioProject[] = Array.from({ length: nProj }, (_, k) => ({
-      id: `${id}_p${k + 1}`,
-      title: pick(PROJECT_TITLES),
-      description: pick(PROJECT_DESCS),
-      createdAt: iso(dateBetween(u.joinedAt, "2026-05-24")),
-    }));
-    const shared =
-      u.status === "completed" || u.status === "employed"
-        ? picks(companyIds, int(0, 3))
+    const isGraduate = u.status === "completed" || u.status === "employed";
+    const advanced = isGraduate || u.status === "enrolled";
+    const when = () => iso(dateBetween(u.joinedAt, "2026-05-24"));
+
+    const projects: PortfolioProject[] = [];
+    if (isGraduate) {
+      // 수료생: 캡스톤 + 실습 결과물 보존
+      projects.push({
+        id: `${id}_cap`,
+        title: pick(CAPSTONE_THEME[u.track]),
+        description: "교육과정 캡스톤으로 기획→구현→발표까지 수행한 최종 산출물입니다.",
+        kind: "capstone",
+        createdAt: when(),
+      });
+      picks(PRACTICE_PROJECTS, int(1, 2)).forEach((t, k) =>
+        projects.push({
+          id: `${id}_pr${k + 1}`,
+          title: t,
+          description: "과정 중 수행한 실습 결과물입니다.",
+          kind: "practice",
+          createdAt: when(),
+        })
+      );
+    } else if (advanced) {
+      Array.from({ length: int(1, 2) }).forEach((_, k) =>
+        projects.push({
+          id: `${id}_p${k + 1}`,
+          title: pick(PROJECT_TITLES),
+          description: pick(PROJECT_DESCS),
+          kind: "project",
+          createdAt: when(),
+        })
+      );
+    }
+
+    const learnings = isGraduate
+      ? picks(LEARNINGS, int(3, 5))
+      : advanced
+        ? picks(LEARNINGS, int(1, 3))
         : [];
+    const shared = isGraduate ? picks(companyIds, int(1, 3)) : [];
 
     return {
       id,
@@ -532,8 +565,11 @@ function generatePortfolios(
       sharedWithCompanies: shared,
       projects,
       badgeIds: uBadges.map((b) => b.id),
-      summary: `${TRACK_LABEL[u.track]} 트랙 · ${GRADE_LABEL[u.spotGrade]} 등급 · 이수 배지 ${uBadges.length}개`,
-      lastUpdated: iso(dateBetween(u.joinedAt, "2026-05-24")),
+      learnings,
+      summary: isGraduate
+        ? `${TRACK_LABEL[u.track]} 트랙 수료 · ${GRADE_LABEL[u.spotGrade]} 등급 · 캡스톤 완료 · 이수 배지 ${uBadges.length}개`
+        : `${TRACK_LABEL[u.track]} 트랙 · ${GRADE_LABEL[u.spotGrade]} 등급 · 이수 배지 ${uBadges.length}개`,
+      lastUpdated: when(),
     };
   });
 }
@@ -616,9 +652,12 @@ export function generateDataset(): Dataset {
   const programs = buildPrograms();
   const courses = buildCourses(programs, instructors);
   const companies = buildCompanies();
-  const employers = buildEmployers();
+  const baseEmployers = buildEmployers();
+  const aiEmployers = buildAiEmployers();
+  const employers = [...baseEmployers, ...aiEmployers];
   const mentors = buildMentors(companies);
-  const spotJobs = buildSpotJobs(employers);
+  // 일반 Spot 일감 + AI 일자리(검수 크라우드워크)
+  const spotJobs = [...buildSpotJobs(baseEmployers), ...buildAiSpotJobs(aiEmployers)];
 
   const programById = new Map(programs.map((p) => [p.id, p]));
   const programByCourse = new Map(

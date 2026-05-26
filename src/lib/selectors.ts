@@ -461,6 +461,69 @@ export function companyStats(db: Dataset, companyId: string) {
   };
 }
 
+// ──────────────────────────────────────────────
+// 수료생 (사후 관리 / 인재풀)
+// ──────────────────────────────────────────────
+export function graduates(db: Dataset): User[] {
+  return db.users.filter(
+    (u) => u.status === "completed" || u.status === "employed"
+  );
+}
+
+export interface GraduateRow {
+  user: User;
+  completedCount: number;
+  hours: number;
+  badges: number;
+  capstone?: string;
+  employed: boolean;
+  companyName?: string;
+}
+
+export function graduateRows(db: Dataset): GraduateRow[] {
+  const pf = new Map(db.portfolios.map((p) => [p.userId, p]));
+  const companyById = new Map(db.companies.map((c) => [c.id, c]));
+  return graduates(db).map((u) => {
+    const learn = learningSummary(db, u.id);
+    const cap = pf.get(u.id)?.projects.find((x) => x.kind === "capstone")?.title;
+    const placement = db.placements.find(
+      (pl) => pl.userId === u.id && pl.status === "hired"
+    );
+    return {
+      user: u,
+      completedCount: learn.completedCount,
+      hours: learn.hours,
+      badges: userBadges(db, u.id).length,
+      capstone: cap,
+      employed: u.status === "employed",
+      companyName: placement ? companyById.get(placement.companyId)?.name : undefined,
+    };
+  });
+}
+
+export function graduateOutcomes(db: Dataset) {
+  const grads = graduates(db);
+  const employed = grads.filter((g) => g.status === "employed").length;
+  const count = (t: "try_job" | "get_job") => {
+    const list = grads.filter((g) => g.track === t);
+    const emp = list.filter((g) => g.status === "employed").length;
+    return {
+      total: list.length,
+      employed: emp,
+      rate: list.length ? Math.round((emp / list.length) * 100) : 0,
+    };
+  };
+  return {
+    total: grads.length,
+    employed,
+    employRate: grads.length ? Math.round((employed / grads.length) * 100) : 0,
+    capstoneDone: db.portfolios.filter((p) =>
+      p.projects.some((x) => x.kind === "capstone")
+    ).length,
+    byTrack: { try_job: count("try_job"), get_job: count("get_job") },
+  };
+}
+
 export function reportFigures(db: Dataset) {
   const k = dashboardKpis(db);
   const completionRate =

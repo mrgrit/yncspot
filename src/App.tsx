@@ -18,6 +18,7 @@ import Portfolio from "@/pages/youth/Portfolio";
 import Badges from "@/pages/youth/Badges";
 import SpotBoard from "@/pages/youth/SpotBoard";
 import SpotDetail from "@/pages/youth/SpotDetail";
+import SpotWork from "@/pages/youth/SpotWork";
 import SpotHistory from "@/pages/youth/SpotHistory";
 import Courses from "@/pages/youth/Courses";
 import Jobs from "@/pages/youth/Jobs";
@@ -30,6 +31,7 @@ import AdminCourses from "@/pages/admin/AdminCourses";
 import AdminSpotJobs from "@/pages/admin/AdminSpotJobs";
 import Companies from "@/pages/admin/Companies";
 import Placements from "@/pages/admin/Placements";
+import Graduates from "@/pages/admin/Graduates";
 import Reports from "@/pages/admin/Reports";
 
 import CompanyPortal from "@/pages/company/CompanyPortal";
@@ -63,6 +65,7 @@ export default function App() {
                   <Route path="/me/badges" element={<Badges />} />
                   <Route path="/spot" element={<SpotBoard />} />
                   <Route path="/spot/history" element={<SpotHistory />} />
+                  <Route path="/spot/:id/work" element={<SpotWork />} />
                   <Route path="/spot/:id" element={<SpotDetail />} />
                   <Route path="/courses" element={<Courses />} />
                   <Route path="/jobs" element={<Jobs />} />
@@ -84,6 +87,7 @@ export default function App() {
                   <Route path="/admin/spot-jobs" element={<AdminSpotJobs />} />
                   <Route path="/admin/companies" element={<Companies />} />
                   <Route path="/admin/placements" element={<Placements />} />
+                  <Route path="/admin/graduates" element={<Graduates />} />
                   <Route path="/admin/reports" element={<Reports />} />
                 </Route>
 

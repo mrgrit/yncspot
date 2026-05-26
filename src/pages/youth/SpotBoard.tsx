@@ -87,7 +87,7 @@ export default function SpotBoard() {
   const slice = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
 
   const nextSeq = me.spotCount + 1;
-  const nextReward = calcReward(70000, nextSeq <= 3 ? (nextSeq as 1 | 2 | 3) : null);
+  const nextReward = calcReward(50000, nextSeq <= 3 ? (nextSeq as 1 | 2 | 3) : null);
   const gp = gradeProgress(me);
 
   return (

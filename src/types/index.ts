@@ -155,12 +155,43 @@ export interface SpotJob {
   description: string;
   category: string;
   durationMin: number;
-  baseWage: number; // 일당 기준 금액
+  baseWage: number; // 일당/건당 기준 금액
   requiredGrade: SpotGrade;
   location: string;
   status: SpotJobStatus;
   createdAt: string;
   scheduledAt: string;
+  aiTask?: AiTask; // "AI 일자리" 카테고리 전용 검수 작업 명세
+}
+
+// ── AI 일자리 (AI 검수 크라우드워크) ──────────────
+export type OutputFieldKind =
+  | "text_short"
+  | "text_long"
+  | "screenshot"
+  | "command_output"
+  | "url"
+  | "rating"
+  | "choice_single"
+  | "choice_multi"
+  | "yes_no"
+  | "json";
+
+export interface OutputField {
+  key: string;
+  label: string;
+  helperText?: string;
+  kind: OutputFieldKind;
+  required: boolean;
+  options?: string[];
+}
+
+export interface AiTask {
+  domain: string; // food-bev / welfare / security / vision / data / fact
+  domainLabel: string;
+  guideMd: string; // 검수 가이드 (markdown 유사 텍스트)
+  fields: OutputField[]; // 동적 출력 폼 스키마
+  estimatedMin: number;
 }
 
 export interface SpotHistory {
@@ -229,6 +260,7 @@ export interface PortfolioProject {
   id: string;
   title: string;
   description: string;
+  kind?: "capstone" | "practice" | "project";
   programId?: string;
   link?: string;
   createdAt: string;
@@ -240,6 +272,7 @@ export interface Portfolio {
   sharedWithCompanies: string[]; // companyId[]
   projects: PortfolioProject[];
   badgeIds: string[];
+  learnings?: string[]; // 과정 중 배운 것 (수료생 보존)
   summary: string;
   lastUpdated: string;
 }

@@ -38,12 +38,12 @@ function gradeMeets(userGrade: SpotGrade, required: SpotGrade): boolean {
 /** 주소/지역 문자열에서 핵심 지역명 토큰 추출 */
 export const KNOWN_DISTRICTS = [
   "남구",
-  "해운대",
-  "서면",
-  "부산진구",
-  "수영구",
+  "수성구",
+  "중구",
+  "달서구",
   "동구",
-  "연제구",
+  "북구",
+  "달성군",
 ];
 
 export function districtOf(addr: string): string | null {
