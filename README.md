@@ -6,6 +6,9 @@
 3영역 동시이수 → 포트폴리오 → 협약기업 취업·**수료생 사후관리**까지를 하나의 플랫폼으로 연결하는
 데모 시스템입니다. **대구 남구(영남이공대) 권역** 기준이며, 모든 데이터는 결정론적 더미 데이터(`faker.seed(42)`)입니다.
 
+참여자마다 **페르소나(상황·사연·신청 계기)** 와 **주기적 상담 내역**을 갖고, 사람·교과목·캡스톤 등
+**제목을 클릭하면 상세**가 열립니다.
+
 > 브랜드명/테마는 [`src/config/brand.ts`](src/config/brand.ts) **한 곳**에서만 관리합니다.
 > `BRAND.systemName` 만 바꿔도 헤더·로그인·랜딩·푸터 등 전체에 반영됩니다.
 
@@ -24,9 +27,9 @@ npm run typecheck
 
 | 역할 | 진입 | 주요 화면 |
 |---|---|---|
-| **참여자** | `/me` | 마이페이지 · Spot 게시판/상세/**AI 검수 작업** · 이력 · 교육과정 · 채용 · 포트폴리오(캡스톤·학습) · 배지 · AI 챗 |
-| **사업단 운영자** | `/admin` | 통합 대시보드 · 참여자 · 교육운영 · Spot운영 · 협약기업 · 취업매칭 · **수료생 사후관리** · 보고서 |
-| **협약기업** | `/company` | **수료생 인재풀 검색** · 채용 활동 통계 · 우리 회사 공고 |
+| **참여자** | `/me` | 마이페이지(본인 상황·**상담 내역**) · Spot 게시판/상세/**AI 검수 작업** · 이력 · 교육과정 · 채용 · 포트폴리오(캡스톤·학습) · 배지 · AI 챗 |
+| **사업단 운영자** | `/admin` | 통합 대시보드 · 참여자(상세·**상담**) · 교육운영 · Spot운영 · 협약기업 · 취업매칭 · **수료생 사후관리** · 보고서 |
+| **협약기업** | `/company` | **수료생 인재풀 검색**(직무 프로필만, 상담·사연 비공개) · 채용 활동 통계 · 우리 회사 공고 |
 | **시스템 관리자** | `/admin` | 운영자와 동일 권한 |
 
 ## AI 어시스턴트(API 키) 설정
@@ -51,7 +54,7 @@ npm run typecheck
 ```
 src/
 ├── config/brand.ts        # 시스템명·테마 단일 관리
-├── types/index.ts         # 전역 타입(엔티티 17종)
+├── types/index.ts         # 전역 타입(엔티티 18종 + 페르소나·상담)
 ├── data/                  # 더미 데이터 생성기 (db 단일 인스턴스)
 │   └── aiJobs.ts          #  · AI 일자리(검수 도메인·가이드·동적폼) 정의/생성
 ├── lib/
@@ -59,7 +62,7 @@ src/
 │   ├── reward.ts          # Spot 1·2·3차 보상 + 등급 승급 룰
 │   ├── matcher.ts         # Spot 매칭 점수(최대 100)
 │   ├── badgeIssuer.ts     # 디지털 배지 발급
-│   ├── selectors.ts       # 화면용 집계(KPI/차트/사용자/기업/보고서/수료생)
+│   ├── selectors.ts       # 화면용 집계(KPI/차트/사용자/기업/보고서/수료생/상담/쉬었음)
 │   └── ai.ts              # AI 컨텍스트 · Anthropic 호출 · 폴백
 ├── contexts/              # AuthContext(역할/세션) · DataContext(데이터/액션)
 ├── hooks/useMe.ts         # 현재 참여자 실시간 레코드
@@ -69,7 +72,9 @@ src/
 │   │                      #  ·Tabs·Table·Dialog·Toast·Progress·ChartCard·feedback
 │   ├── charts/KpiCard.tsx # sparkline 포함 KPI 카드
 │   ├── common/PageHeader  
+│   ├── details/           # PersonDetail · ProgramDetail · ProjectDetail (제목 클릭 상세)
 │   ├── layout/            # AdminLayout · YouthLayout · CompanyLayout · Topbar · nav
+│   ├── BrandLogo.tsx      # 메인 아이콘(Rocket) 단일 관리
 │   └── ErrorBoundary.tsx
 ├── pages/
 │   ├── public/            # Landing · Login(역할선택) · NotFound
@@ -122,16 +127,36 @@ src/
 - **운영/관리자**: `/admin/graduates` — 사업 실적·취업률(트랙별)·캡스톤·취업처 사후관리(검색/필터)
 - **협약기업**: `/company` 인재풀에서 트랙·등급·관심사·캡스톤으로 수료생 **검색**
 
+## 페르소나 · 상담 (사업단·본인 전용)
+
+- 참여자마다 **상황**(고졸 후 미취업 / 대학 휴학 후 장기 미복학 / 경력 단절 등) · `rested`(쉬었음 여부) ·
+  **사연**(`story`) · **신청 계기**(`motivation`) 를 개인 학과·목표·관심사 기반으로 생성.
+- **'쉬었음' 청년 비율 ≈ 59%** (Try 트랙 다수 + Get 트랙 일부) — 보고서 지표로 노출.
+- **주기적 상담 내역**(양 트랙, 초기→정기/진로/심리/취업 순환): 가입~현재 기간에 분산.
+- **열람 권한**: 상담·사연은 **사업단(운영/관리자) 또는 본인만** 볼 수 있습니다(`PersonDetail` 권한 게이트).
+  협약기업 인재풀에는 **직무 프로필만**(역량·이수·캡스톤·배지) 노출되고 상담·사연은 비공개.
+
+## 상세 보기 (제목 클릭 → 다이얼로그)
+
+`components/details` 의 재사용 다이얼로그로, 목록의 제목/행을 클릭하면 상세가 열립니다.
+
+- **PersonDetail** — 소개·학과·목표·역량 + (권한 시)상황·사연·상담 + 학습/Spot/AI 이력·캡스톤·배지.
+  연결: 참여자관리·수료생·취업매칭·기업 인재풀.
+- **ProgramDetail** — 설명·커리큘럼(모듈)·학습 성과·개설 분반(강사/일정). 연결: 교육과정·교육운영.
+- **ProjectDetail** — 개요·담당 역할·사용 기술·성과·산출물 링크. 연결: 포트폴리오(캡스톤/실습).
+
 ## 더미 데이터 (결정론적 · 대구 남구 권역)
 
 Users 200 · Instructors 8 · Employers 40(일반 35 + **AI 발주처 5**) · Mentors 24 · Programs 12 · Courses 25 ·
 Enrollments 600 · SpotJobs 606(일반 580 + **AI 일자리 26**) · SpotHistory ≈1,350 · Companies 18(대구 중심) ·
-JobPostings 24 · Mentorships 218 · Badges 410 · Portfolios 200 · ChatSessions 80 · Placements 41 · Notifications ≈1,570
+JobPostings 24 · Mentorships 218 · Badges 410 · Portfolios 200 · ChatSessions 80 · Placements 41 ·
+**Counselings ≈547** · Notifications ≈1,570
 
 - **지역**: 사용자 주소·발주처·캠퍼스 모두 **대구 남구**(대명·봉덕·이천동), 협약기업도 대구 중심(DGB·iM뱅크·에스엘·대구교통공사 등)
 - **Spot 일당**: 28,000~63,000원 (현실화 — 기존 40~90k 의 약 2/3~3/4). AI 검수는 건당 12k~28k.
-- 대시보드 KPI(파생): 누적 양성인원 190 · 활성 119 · 취업률 50% · Spot 1,350 · 채용 35 · 만족도 4.25.
-- 수료생 취업률: 전체 64% (Get 100% / Try 20%) · 캡스톤 완료 55명.
+- **'쉬었음' 청년 ≈ 59%** (117/200).
+- 대시보드 KPI(파생): 누적 양성인원 190 · 활성 119 · **취업률(Get 수료생) 60%** · Spot 1,350 · 채용 24 · 만족도 4.25.
+- 수료생 취업률(현실화): 전체 44% · **Get 60% / Try 24%** · 캡스톤 완료 55명.
 
 > ⚠️ 모든 데이터는 데모용 가상 데이터입니다. 실제 인물·기업·협약과 무관합니다.
 
@@ -140,6 +165,8 @@ JobPostings 24 · Mentorships 218 · Badges 410 · Portfolios 200 · ChatSession
 1. `successSequence` — 보상 단계 상승 구조에 맞춰 "개인 첫 1·2·3번째 성공" 순서형 모델.
 2. `employed` vs Placement — **Placement 를 채용 단일 진실원본**으로, hired → `User.status='employed'` 동기화.
 3. 참조만 있던 `Instructor`/`Employer`/`Mentor` 타입 추가로 FK 무결성 확보.
+4. **취업률 현실화** — 분모를 '수료생(이수완료/취업)'으로 산정하여 Get 트랙 **60%**(Try 24%)로 조정.
+5. **상담·사연 열람 제한** — 사업단(운영/관리자)·본인만 열람, 협약기업 인재풀에는 직무 프로필만 노출.
 
 ## 외부 접속 (다른 네트워크)
 
