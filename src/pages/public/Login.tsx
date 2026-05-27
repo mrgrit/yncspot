@@ -7,6 +7,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { BRAND } from "@/config/brand";
+import { BrandIcon } from "@/components/BrandLogo";
 import { useAuth, type AppRole } from "@/contexts/AuthContext";
 import { homePathFor } from "@/routes/guards";
 import { Card } from "@/components/ui/card";
@@ -37,7 +38,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-800 text-white">
-            <Sparkles className="h-7 w-7" />
+            <BrandIcon className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{BRAND.displayName}</h1>
           <p className="mt-1 text-sm text-slate-500">{BRAND.fullName}</p>

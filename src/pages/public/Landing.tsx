@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, GraduationCap, Building2 } from "lucide-react";
 import { BRAND } from "@/config/brand";
+import { BrandIcon } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 
 export default function Landing() {
@@ -9,7 +10,7 @@ export default function Landing() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-800 text-white">
-            <Sparkles className="h-5 w-5" />
+            <BrandIcon className="h-5 w-5" />
           </span>
           <span className="text-lg font-bold text-slate-900">{BRAND.displayName}</span>
           <span className="text-xs text-slate-400">{BRAND.systemName}</span>

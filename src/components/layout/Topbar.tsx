@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, ChevronDown, LogOut, Menu, Sparkles } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Menu } from "lucide-react";
 import { BRAND } from "@/config/brand";
+import { BrandIcon } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { Avatar } from "@/components/ui/avatar";
@@ -26,7 +27,7 @@ export function Topbar({ onMenu }: { onMenu?: () => void }) {
         )}
         <Link to="/" className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-800 text-white">
-            <Sparkles className="h-4 w-4" />
+            <BrandIcon className="h-4 w-4" />
           </span>
           <span className="text-base font-bold text-slate-900">
             {BRAND.displayName}
