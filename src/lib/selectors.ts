@@ -119,10 +119,11 @@ export function dashboardKpis(db: Dataset): DashboardKpis {
     (u) => new Date(u.lastActiveAt).getTime() >= activeSince
   ).length;
 
-  const getTotal = db.users.filter((u) => u.track === "get_job").length;
-  const getEmployed = db.users.filter(
-    (u) => u.track === "get_job" && u.status === "employed"
-  ).length;
+  // 취업률은 '수료생(이수완료/취업)' 을 분모로 산정 (Get 트랙)
+  const getGrads = db.users.filter(
+    (u) => u.track === "get_job" && (u.status === "completed" || u.status === "employed")
+  );
+  const getEmployedGrads = getGrads.filter((u) => u.status === "employed").length;
   const employed = db.users.filter((u) => u.status === "employed").length;
 
   const ratings = [
@@ -136,7 +137,7 @@ export function dashboardKpis(db: Dataset): DashboardKpis {
     trained,
     trainedTarget: 200,
     active,
-    employRate: getTotal ? (getEmployed / getTotal) * 100 : 0,
+    employRate: getGrads.length ? (getEmployedGrads / getGrads.length) * 100 : 0,
     employed,
     spotTotal: db.spotHistory.length,
     spotThisMonth: db.spotHistory.filter(
@@ -522,6 +523,21 @@ export function graduateOutcomes(db: Dataset) {
     ).length,
     byTrack: { try_job: count("try_job"), get_job: count("get_job") },
   };
+}
+
+// ──────────────────────────────────────────────
+// 상담 내역 (사업단·본인 전용) / 쉬었음 청년 비율
+// ──────────────────────────────────────────────
+export function userCounselings(db: Dataset, userId: string) {
+  return db.counselings
+    .filter((c) => c.userId === userId)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+export function restedRatio(db: Dataset) {
+  const rested = db.users.filter((u) => u.rested).length;
+  const total = db.users.length;
+  return { rested, total, pct: total ? Math.round((rested / total) * 100) : 0 };
 }
 
 export function reportFigures(db: Dataset) {

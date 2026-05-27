@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { ProgramDetailDialog, useProgramDetail } from "@/components/details/ProgramDetail";
 import { programCompletionRates } from "@/lib/selectors";
 import {
   AREA_LABEL,
@@ -16,6 +17,7 @@ import {
 
 export default function AdminCourses() {
   const { db } = useData();
+  const detail = useProgramDetail();
   const rates = useMemo(() => programCompletionRates(db), [db]);
   const rateById = useMemo(() => new Map(rates.map((r) => [r.id, r])), [rates]);
 
@@ -52,8 +54,8 @@ export default function AdminCourses() {
               {db.programs.map((p) => {
                 const r = rateById.get(p.id);
                 return (
-                  <TR key={p.id}>
-                    <TD className="pl-5 font-medium text-slate-800">{p.name}</TD>
+                  <TR key={p.id} onClick={() => detail.open(p.id)}>
+                    <TD className="pl-5 font-medium text-brand-800">{p.name}</TD>
                     <TD>
                       <Badge variant={p.track === "try_job" ? "try" : "get"}>
                         {TRACK_LABEL[p.track]}
@@ -75,6 +77,8 @@ export default function AdminCourses() {
           </Table>
         </CardContent>
       </Card>
+
+      <ProgramDetailDialog programId={detail.programId} onClose={detail.close} />
     </div>
   );
 }

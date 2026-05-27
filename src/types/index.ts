@@ -80,6 +80,17 @@ export interface User {
   gov24_assessed: boolean; // 고용24 구직준비도 검사 여부
   gov24_score?: number; // 0~100
   interests: string[]; // 관심 직무
+  // 상세(한 뎁스 더)
+  school: string; // 소속/출신 학과
+  major: string; // 전공
+  goal: string; // 목표 직무
+  skills: string[]; // 보유 역량
+  bio: string; // 한 줄 소개
+  // 페르소나 (개인정보 기반)
+  situation: string; // 상황(고졸 후 미취업 / 대학 휴학 후 장기 미복학 등)
+  rested: boolean; // '쉬었음' 청년 여부
+  story: string; // 사연
+  motivation: string; // 과정 신청 계기
   joinedAt: string; // ISO datetime
   lastActiveAt: string; // ISO datetime
   avatarColor: string; // hex
@@ -124,6 +135,10 @@ export interface Program {
   capacity: number;
   startDate: string;
   endDate: string;
+  // 상세(한 뎁스 더)
+  description: string;
+  syllabus: string[]; // 모듈/주차 구성
+  outcomes: string[]; // 학습 성과
 }
 
 export interface Course {
@@ -256,6 +271,14 @@ export interface Badge {
   certUrl: string; // Mock 발급 URL
 }
 
+export interface ProjectDetail {
+  overview: string;
+  role: string;
+  stack: string[];
+  outcomes: string[];
+  period: string;
+}
+
 export interface PortfolioProject {
   id: string;
   title: string;
@@ -264,6 +287,7 @@ export interface PortfolioProject {
   programId?: string;
   link?: string;
   createdAt: string;
+  detail?: ProjectDetail; // 제목 클릭 시 상세
 }
 
 export interface Portfolio {
@@ -313,6 +337,20 @@ export interface Notification {
   createdAt: string;
 }
 
+// 상담 내역 (사업단·본인 전용)
+export type CounselingType = "intake" | "regular" | "career" | "psych" | "job";
+
+export interface Counseling {
+  id: string;
+  userId: string;
+  counselor: string;
+  type: CounselingType;
+  date: string;
+  summary: string;
+  note: string;
+  nextPlan: string;
+}
+
 // ──────────────────────────────────────────────
 // 전체 데이터셋 (DataContext 가 보유)
 // ──────────────────────────────────────────────
@@ -334,4 +372,5 @@ export interface Dataset {
   chatSessions: ChatSession[];
   placements: Placement[];
   notifications: Notification[];
+  counselings: Counseling[];
 }

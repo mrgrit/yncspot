@@ -12,6 +12,7 @@ import { ProgressBar } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/feedback";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { ProgramDetailDialog, useProgramDetail } from "@/components/details/ProgramDetail";
 import { userEnrollments } from "@/lib/selectors";
 import {
   AREA_LABEL,
@@ -30,6 +31,7 @@ export default function Courses() {
   const [trackFilter, setTrackFilter] = useState<Track | "all">(me.track);
   const [modalProgram, setModalProgram] = useState<Program | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const detail = useProgramDetail();
 
   const programs = useMemo(
     () => db.programs.filter((p) => trackFilter === "all" || p.track === trackFilter),
@@ -102,7 +104,12 @@ export default function Courses() {
                       </Badge>
                       <Badge variant="outline">{PROGRAM_TYPE_LABEL[p.type]}</Badge>
                     </div>
-                    <p className="mt-2 font-semibold text-slate-900">{p.name}</p>
+                    <button
+                      onClick={() => detail.open(p.id)}
+                      className="mt-2 text-left font-semibold text-slate-900 hover:text-brand-800 hover:underline"
+                    >
+                      {p.name}
+                    </button>
                     <p className="mt-0.5 text-xs text-slate-400">
                       {LEVEL_LABEL[p.level]} · {AREA_LABEL[p.area]}
                     </p>
@@ -150,8 +157,8 @@ export default function Courses() {
                       const course = courseById.get(e.courseId);
                       const program = course ? programById.get(course.programId) : undefined;
                       return (
-                        <TR key={e.id}>
-                          <TD className="pl-5 font-medium text-slate-800">
+                        <TR key={e.id} onClick={() => program && detail.open(program.id)}>
+                          <TD className="pl-5 font-medium text-brand-800">
                             {program?.name ?? "과정"}
                           </TD>
                           <TD className="text-slate-500">{course?.name ?? "-"}</TD>
@@ -226,6 +233,8 @@ export default function Courses() {
           </>
         )}
       </Dialog>
+
+      <ProgramDetailDialog programId={detail.programId} onClose={detail.close} />
     </div>
   );
 }

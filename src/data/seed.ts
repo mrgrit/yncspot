@@ -15,6 +15,8 @@ import type {
   ChatMessage,
   ChatSession,
   Company,
+  Counseling,
+  CounselingType,
   Course,
   Dataset,
   Enrollment,
@@ -37,10 +39,18 @@ import type {
 import {
   CAPSTONE_THEME,
   CHAT_SAMPLES,
+  COUNSELING_NEXT,
+  COUNSELING_SUMMARY,
+  COUNSELING_TYPE_POOL,
+  COUNSELORS,
   GIVEN_NAMES,
   LEARNINGS,
   MENTORING_TOPICS,
   PRACTICE_PROJECTS,
+  PROJECT_OUTCOMES_POOL,
+  PROJECT_PERIODS,
+  PROJECT_ROLES,
+  PROJECT_STACKS,
   SPOT_FEEDBACKS,
   SURNAMES,
   chance,
@@ -353,7 +363,8 @@ function generateJobPostings(companies: Company[]): JobPosting[] {
 }
 
 // ──────────────────────────────────────────────
-// 채용 연계 (41) — hired 시 User.status='employed' 동기화
+// 채용 연계 (41) — Get 트랙 수료생 취업률 ≈ 60% 로 현실화
+//   hired 시 User.status='employed' 동기화
 // ──────────────────────────────────────────────
 function generatePlacements(
   users: User[],
@@ -361,20 +372,22 @@ function generatePlacements(
   jobPostings: JobPosting[]
 ): Placement[] {
   const nextId = idFactory("plc");
-  const employed = users.filter((u) => u.status === "employed");
-  const getCompleted = users.filter(
-    (u) => u.track === "get_job" && u.status === "completed"
-  );
-  const tryCompleted = users.filter(
-    (u) => u.track === "try_job" && u.status === "completed"
-  );
-  const ordered = [...employed, ...getCompleted, ...tryCompleted].slice(0, 41);
+  const getEmployed = users.filter((u) => u.track === "get_job" && u.status === "employed"); // 10
+  const getCompleted = users.filter((u) => u.track === "get_job" && u.status === "completed"); // 20
+  const tryCompleted = users.filter((u) => u.track === "try_job" && u.status === "completed"); // 25
 
-  const statuses: PlacementStatus[] = [];
-  for (let i = 0; i < 35; i++) statuses.push("hired");
-  for (let i = 0; i < 3; i++) statuses.push("interviewing");
-  for (let i = 0; i < 2; i++) statuses.push("applied");
-  statuses.push("rejected"); // 총 41
+  // Get 수료생(30) 중 18명 취업(60%) = 기존 employed 10 + completed 8 전환
+  const getFlip = getCompleted.slice(0, 8);
+  // Try 수료생(25) 중 6명 취업(24%)
+  const tryFlip = tryCompleted.slice(0, 6);
+  const hiredUsers = [...getEmployed, ...getFlip, ...tryFlip]; // 24
+
+  // 나머지 수료생 중 17명은 비채용 연계(면접중/지원/불합격)
+  const otherUsers = [...getCompleted.slice(8), ...tryCompleted.slice(6)].slice(0, 17);
+  const otherStatuses: PlacementStatus[] = [];
+  for (let i = 0; i < 8; i++) otherStatuses.push("interviewing");
+  for (let i = 0; i < 6; i++) otherStatuses.push("applied");
+  for (let i = 0; i < 3; i++) otherStatuses.push("rejected"); // 17
 
   const postingsByCompany = new Map<string, JobPosting[]>();
   for (const p of jobPostings) {
@@ -383,24 +396,19 @@ function generatePlacements(
     postingsByCompany.set(p.companyId, arr);
   }
 
-  return ordered.map((u, idx) => {
-    const status = statuses[idx] ?? "applied";
+  const list: Placement[] = [];
+  const make = (u: User, status: PlacementStatus) => {
     const company = pick(companies);
     const posting = pick(postingsByCompany.get(company.id) ?? jobPostings);
-    // 지원 → 면접 → 채용 순서를 보장하도록 상한을 단계적으로 둔다.
     const appliedAt = iso(dateBetween(u.joinedAt, "2026-05-22"));
-
     let interviewAt: string | undefined;
     let hiredAt: string | undefined;
-    if (status !== "applied") {
-      interviewAt = iso(dateBetween(appliedAt, "2026-05-23"));
-    }
+    if (status !== "applied") interviewAt = iso(dateBetween(appliedAt, "2026-05-23"));
     if (status === "hired") {
       hiredAt = iso(dateBetween(interviewAt!, "2026-05-24"));
       u.status = "employed"; // 단일 진실원본 동기화
     }
-
-    return {
+    list.push({
       id: nextId(),
       userId: u.id,
       companyId: company.id,
@@ -409,8 +417,60 @@ function generatePlacements(
       interviewAt,
       hiredAt,
       status,
-    };
-  });
+    });
+  };
+
+  for (const u of hiredUsers) make(u, "hired");
+  otherUsers.forEach((u, i) => make(u, otherStatuses[i] ?? "applied"));
+  return list; // 24 + 17 = 41
+}
+
+// ──────────────────────────────────────────────
+// 상담 내역 (양 트랙 주기적) — 사업단·본인 전용
+// ──────────────────────────────────────────────
+function generateCounselings(users: User[]): Counseling[] {
+  const nextId = idFactory("cns");
+  const list: Counseling[] = [];
+  const countByStatus: Record<UserStatus, [number, number]> = {
+    registered: [1, 1],
+    spot_active: [1, 2],
+    enrolled: [2, 4],
+    completed: [3, 5],
+    employed: [3, 5],
+    dropped: [1, 2],
+  };
+
+  for (const u of users) {
+    const [lo, hi] = countByStatus[u.status];
+    const n = int(lo, hi);
+    const start = new Date(u.joinedAt).getTime();
+    const end = new Date("2026-05-24").getTime();
+    const step = n > 0 ? (end - start) / n : 0;
+
+    for (let i = 0; i < n; i++) {
+      // 첫 회차는 초기상담, 이후 정기/진로/심리/취업 순환
+      let type: CounselingType;
+      if (i === 0) type = "intake";
+      else if (u.status === "completed" || u.status === "employed")
+        type = pick(["regular", "career", "job"] as CounselingType[]);
+      else type = pick(["regular", "career", "psych"] as CounselingType[]);
+
+      const date = new Date(start + step * i + step * 0.5);
+      list.push({
+        id: nextId(),
+        userId: u.id,
+        counselor: pick(COUNSELORS),
+        type,
+        date: iso(date),
+        summary: pick(COUNSELING_SUMMARY[type]),
+        note:
+          COUNSELING_TYPE_POOL.find((t) => t.type === type)?.label +
+          ` · ${u.rested ? "쉬었음" : "구직"} 청년 케어`,
+        nextPlan: pick(COUNSELING_NEXT),
+      });
+    }
+  }
+  return list;
 }
 
 // ──────────────────────────────────────────────
@@ -521,6 +581,17 @@ function generatePortfolios(
     const advanced = isGraduate || u.status === "enrolled";
     const when = () => iso(dateBetween(u.joinedAt, "2026-05-24"));
 
+    const makeDetail = (kind: "capstone" | "practice" | "project") => ({
+      overview:
+        kind === "capstone"
+          ? "교육과정 전 영역을 통합해 기획·구현·발표까지 수행한 최종 프로젝트입니다."
+          : "과정 중 핵심 개념을 적용해 완성한 결과물입니다.",
+      role: pick(PROJECT_ROLES),
+      stack: picks(PROJECT_STACKS, int(2, kind === "capstone" ? 4 : 3)),
+      outcomes: picks(PROJECT_OUTCOMES_POOL, kind === "capstone" ? int(2, 3) : int(1, 2)),
+      period: pick(PROJECT_PERIODS),
+    });
+
     const projects: PortfolioProject[] = [];
     if (isGraduate) {
       // 수료생: 캡스톤 + 실습 결과물 보존
@@ -530,6 +601,8 @@ function generatePortfolios(
         description: "교육과정 캡스톤으로 기획→구현→발표까지 수행한 최종 산출물입니다.",
         kind: "capstone",
         createdAt: when(),
+        link: `https://portfolio.mock.jump-spot/${u.id}/capstone`,
+        detail: makeDetail("capstone"),
       });
       picks(PRACTICE_PROJECTS, int(1, 2)).forEach((t, k) =>
         projects.push({
@@ -538,6 +611,7 @@ function generatePortfolios(
           description: "과정 중 수행한 실습 결과물입니다.",
           kind: "practice",
           createdAt: when(),
+          detail: makeDetail("practice"),
         })
       );
     } else if (advanced) {
@@ -548,6 +622,7 @@ function generatePortfolios(
           description: pick(PROJECT_DESCS),
           kind: "project",
           createdAt: when(),
+          detail: makeDetail("project"),
         })
       );
     }
@@ -673,6 +748,7 @@ export function generateDataset(): Dataset {
   const portfolios = generatePortfolios(users, companies, badges);
   const chatSessions = generateChatSessions(users);
   const notifications = generateNotifications(users);
+  const counselings = generateCounselings(users);
 
   return {
     users,
@@ -692,5 +768,6 @@ export function generateDataset(): Dataset {
     chatSessions,
     placements,
     notifications,
+    counselings,
   };
 }

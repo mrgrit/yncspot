@@ -9,9 +9,16 @@ import type { SpotGrade, Track, User, UserStatus } from "@/types";
 import {
   AVATAR_COLORS,
   DAEGU_ADDRESSES,
+  DEPARTMENTS,
   GIVEN_NAMES,
+  GOALS,
+  SKILLS,
   SURNAMES,
   INTERESTS,
+  SITUATIONS_TRY,
+  SITUATIONS_GET,
+  STORY_BY_SITUATION,
+  MOTIVATION_TEMPLATES,
   chance,
   idFactory,
   int,
@@ -112,6 +119,21 @@ export function buildUsers(): User[] {
     const govP = advanced ? 0.9 : status === "spot_active" ? 0.55 : 0.35;
     const gov24_assessed = chance(govP);
 
+    const dept = pick(DEPARTMENTS);
+    const major = dept.replace(/과$/, "");
+    const goal = pick(GOALS);
+    const skills = picks(SKILLS, int(2, 5));
+    const interests = picks(INTERESTS, int(1, 3));
+    const bio = `${dept} 출신으로 ${goal} 직무를 목표로 합니다. 현장형 일경험과 교육을 병행하고 있습니다.`;
+
+    // 페르소나
+    const sit = weighted(track === "try_job" ? SITUATIONS_TRY : SITUATIONS_GET);
+    const storyIntro = pick(
+      STORY_BY_SITUATION[sit.label] ?? ["진로를 고민하며 새로운 도전을 준비합니다."]
+    );
+    const story = `${storyIntro} 이제 ${interests[0]} 분야에서 ${goal}(으)로 도약하려 합니다.`;
+    const motivation = pick(MOTIVATION_TEMPLATES);
+
     return {
       id,
       name,
@@ -127,7 +149,16 @@ export function buildUsers(): User[] {
       nais_registered: chance(naisP),
       gov24_assessed,
       gov24_score: gov24_assessed ? int(45, 95) : undefined,
-      interests: picks(INTERESTS, int(1, 3)),
+      interests,
+      school: dept,
+      major,
+      goal,
+      skills,
+      bio,
+      situation: sit.label,
+      rested: sit.rested,
+      story,
+      motivation,
       joinedAt: iso(joined),
       lastActiveAt: iso(lastActive),
       avatarColor: pick(AVATAR_COLORS),

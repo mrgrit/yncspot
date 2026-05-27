@@ -7,19 +7,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { monthlyActivity, reportFigures } from "@/lib/selectors";
+import { monthlyActivity, reportFigures, restedRatio } from "@/lib/selectors";
 
 export default function Reports() {
   const { db } = useData();
   const { toast } = useToast();
   const f = useMemo(() => reportFigures(db), [db]);
   const m = useMemo(() => monthlyActivity(db), [db]);
+  const rested = useMemo(() => restedRatio(db), [db]);
 
   const figures = [
     { label: "누적 양성인원", value: `${f.trained}명` },
+    { label: "'쉬었음' 청년 비율", value: `${rested.pct}%` },
     { label: "교육 이수율", value: `${f.completionRate}%` },
     { label: "중도 탈락률", value: `${f.dropoutRate}%` },
-    { label: "취업률", value: `${f.employRate}%` },
+    { label: "취업률(수료생)", value: `${f.employRate}%` },
     { label: "Spot 매칭 누적", value: `${f.spotTotal}건` },
     { label: "협약기업 채용", value: `${f.hired}명` },
     { label: "만족도", value: `${f.satisfaction} / 5.0` },

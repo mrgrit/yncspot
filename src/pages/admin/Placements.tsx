@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/select";
 import { Avatar } from "@/components/ui/avatar";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/feedback";
+import { PersonDetailDialog, usePersonDetail } from "@/components/details/PersonDetail";
 import { PLACEMENT_STATUS_LABEL, formatDate } from "@/lib/utils";
 import type { PlacementStatus } from "@/types";
 
@@ -20,6 +21,7 @@ const FUNNEL: { key: PlacementStatus; label: string; color: string }[] = [
 export default function Placements() {
   const { db } = useData();
   const [status, setStatus] = useState<PlacementStatus | "all">("all");
+  const person = usePersonDetail();
 
   const userById = useMemo(() => new Map(db.users.map((u) => [u.id, u])), [db]);
   const companyById = useMemo(() => new Map(db.companies.map((c) => [c.id, c])), [db]);
@@ -90,7 +92,7 @@ export default function Placements() {
                 {filtered.map((p) => {
                   const u = userById.get(p.userId);
                   return (
-                    <TR key={p.id}>
+                    <TR key={p.id} onClick={() => person.open(p.userId)}>
                       <TD className="pl-5">
                         <span className="flex items-center gap-2">
                           <Avatar name={u?.name ?? "?"} color={u?.avatarColor} size="sm" />
@@ -127,6 +129,8 @@ export default function Placements() {
           )}
         </CardContent>
       </Card>
+
+      <PersonDetailDialog userId={person.userId} onClose={person.close} />
     </div>
   );
 }

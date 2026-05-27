@@ -23,6 +23,7 @@ import {
   recommendedPrograms,
   userAreaProgress,
   userBadges,
+  userCounselings,
   userSpotHistory,
 } from "@/lib/selectors";
 import { GRADE_RULES, GRADE_ORDER } from "@/lib/reward";
@@ -43,6 +44,7 @@ export default function MyPage() {
   const recs = useMemo(() => recommendedPrograms(db, me, 3), [db, me]);
   const spots = useMemo(() => userSpotHistory(db, me.id).slice(0, 3), [db, me]);
   const badges = useMemo(() => userBadges(db, me.id).slice(0, 4), [db, me]);
+  const counselings = useMemo(() => userCounselings(db, me.id).slice(0, 4), [db, me]);
   const gp = gradeProgress(me);
 
   const trackColor = me.track === "try_job" ? THEME.trackTryJob : THEME.trackGetJob;
@@ -259,6 +261,42 @@ export default function MyPage() {
             </Card>
           </Link>
         </div>
+      </div>
+
+      {/* 내 상황·신청 계기 + 상담 내역 (본인 전용) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>내 상황 · 신청 계기</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Badge variant={me.rested ? "warning" : "outline"}>
+              {me.rested ? "쉬었음" : "구직"} · {me.situation}
+            </Badge>
+            <p className="mt-2 text-sm text-slate-600">{me.story}</p>
+            <p className="mt-1 text-xs text-slate-500">신청 계기: {me.motivation}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>상담 내역</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {counselings.length === 0 ? (
+              <EmptyState title="상담 내역이 없습니다" />
+            ) : (
+              counselings.map((c) => (
+                <div key={c.id} className="rounded-2xl border border-slate-100 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-700">{c.counselor}</span>
+                    <span className="text-xs text-slate-400">{fromNow(c.date)}</span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-600">{c.summary}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

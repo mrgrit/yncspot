@@ -28,6 +28,7 @@ export function datasetCounts(d: Dataset = db): Record<string, number> {
     chatSessions: d.chatSessions.length,
     placements: d.placements.length,
     notifications: d.notifications.length,
+    counselings: d.counselings.length,
   };
 }
 

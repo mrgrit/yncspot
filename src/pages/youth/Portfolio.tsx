@@ -21,6 +21,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/feedback";
 import { Avatar } from "@/components/ui/avatar";
+import { ProjectDetailDialog, useProjectDetail } from "@/components/details/ProjectDetail";
 import {
   learningSummary,
   spotByCategory,
@@ -39,6 +40,7 @@ export default function Portfolio() {
   const { db } = useData();
   const { toast } = useToast();
   const [shareOpen, setShareOpen] = useState(false);
+  const proj = useProjectDetail();
 
   const learning = useMemo(() => learningSummary(db, me.id), [db, me]);
   const spotCats = useMemo(() => spotByCategory(db, me.id), [db, me]);
@@ -140,10 +142,11 @@ export default function Portfolio() {
               pf.projects.map((pr) => (
                 <div
                   key={pr.id}
-                  className={`rounded-2xl border p-3 ${pr.kind === "capstone" ? "border-brand-200 bg-brand-50/40" : "border-slate-100"}`}
+                  onClick={() => proj.open(pr)}
+                  className={`cursor-pointer rounded-2xl border p-3 transition-colors hover:border-brand-300 ${pr.kind === "capstone" ? "border-brand-200 bg-brand-50/40" : "border-slate-100"}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-slate-800">{pr.title}</p>
+                    <p className="text-sm font-medium text-slate-800 hover:text-brand-800">{pr.title}</p>
                     {pr.kind === "capstone" && <Badge variant="brand">캡스톤</Badge>}
                     {pr.kind === "practice" && <Badge variant="outline">실습</Badge>}
                   </div>
@@ -221,6 +224,8 @@ export default function Portfolio() {
           </Button>
         </div>
       </Dialog>
+
+      <ProjectDetailDialog project={proj.project} onClose={proj.close} />
     </div>
   );
 }

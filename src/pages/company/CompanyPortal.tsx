@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/feedback";
+import { PersonDetailDialog, usePersonDetail } from "@/components/details/PersonDetail";
 import { companyStats, graduateRows } from "@/lib/selectors";
 import { CONTRACT_TYPE_LABEL, GRADE_LABEL, TRACK_LABEL, formatDate } from "@/lib/utils";
 import type { SpotGrade, Track } from "@/types";
@@ -21,6 +22,7 @@ export default function CompanyPortal() {
   const [q, setQ] = useState("");
   const [track, setTrack] = useState<Track | "all">("all");
   const [grade, setGrade] = useState<SpotGrade | "all">("all");
+  const person = usePersonDetail();
 
   const stats = useMemo(() => companyStats(db, company.id), [db, company]);
   const postings = useMemo(
@@ -94,7 +96,11 @@ export default function CompanyPortal() {
             ) : (
               <div className="grid max-h-[28rem] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                 {talent.slice(0, 30).map((r) => (
-                  <div key={r.user.id} className="rounded-2xl border border-slate-100 p-3">
+                  <div
+                    key={r.user.id}
+                    onClick={() => person.open(r.user.id)}
+                    className="cursor-pointer rounded-2xl border border-slate-100 p-3 transition-colors hover:border-brand-200 hover:bg-brand-50/30"
+                  >
                     <div className="flex items-center gap-2.5">
                       <Avatar name={r.user.name} color={r.user.avatarColor} />
                       <div className="min-w-0 flex-1">
@@ -156,6 +162,8 @@ export default function CompanyPortal() {
           </CardContent>
         </Card>
       </div>
+
+      <PersonDetailDialog userId={person.userId} onClose={person.close} />
     </div>
   );
 }

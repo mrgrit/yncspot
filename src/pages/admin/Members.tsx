@@ -7,18 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Dialog } from "@/components/ui/dialog";
 import { Avatar } from "@/components/ui/avatar";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/feedback";
-import { userEnrollments, userSpotHistory } from "@/lib/selectors";
-import {
-  GRADE_LABEL,
-  STATUS_LABEL,
-  TRACK_LABEL,
-  formatCurrency,
-  formatDate,
-} from "@/lib/utils";
+import { PersonDetailDialog } from "@/components/details/PersonDetail";
+import { GRADE_LABEL, STATUS_LABEL, TRACK_LABEL, formatDate } from "@/lib/utils";
 import type { SpotGrade, Track, User, UserStatus } from "@/types";
 
 const PAGE = 15;
@@ -183,94 +176,7 @@ export default function Members() {
         </div>
       )}
 
-      <MemberDialog user={selected} onClose={() => setSelected(null)} />
+      <PersonDetailDialog userId={selected?.id ?? null} onClose={() => setSelected(null)} />
     </div>
   );
-}
-
-function MemberDialog({ user, onClose }: { user: User | null; onClose: () => void }) {
-  const { db } = useData();
-  if (!user) return null;
-
-  const enr = userEnrollments(db, user.id);
-  const spots = userSpotHistory(db, user.id).slice(0, 5);
-  const chats = db.chatSessions.filter((c) => c.userId === user.id);
-  const programById = new Map(db.programs.map((p) => [p.id, p]));
-  const courseProgram = new Map(db.courses.map((c) => [c.id, c.programId]));
-  const jobById = new Map(db.spotJobs.map((j) => [j.id, j]));
-
-  return (
-    <Dialog open={!!user} onClose={onClose} title={user.name} className="max-w-2xl">
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant={user.track === "try_job" ? "try" : "get"}>{TRACK_LABEL[user.track]}</Badge>
-          <Badge variant="default">{STATUS_LABEL[user.status]}</Badge>
-          <Badge variant="accent">{GRADE_LABEL[user.spotGrade]}</Badge>
-          {user.nais_registered && <Badge variant="success">통합플랫폼 등재</Badge>}
-          {user.gov24_assessed && <Badge variant="brand">구직준비도 {user.gov24_score}점</Badge>}
-        </div>
-        <p className="text-sm text-slate-500">
-          {user.email} · {user.phone} · {user.address}
-        </p>
-
-        <Section title={`학습 이력 (${enr.length})`}>
-          {enr.length === 0 ? (
-            <Empty />
-          ) : (
-            enr.slice(0, 6).map((e) => (
-              <Row
-                key={e.id}
-                left={programById.get(courseProgram.get(e.courseId)!)?.name ?? "과정"}
-                right={`${STATUS_LABEL[e.status as keyof typeof STATUS_LABEL] ?? e.status} · 출석 ${e.attendanceRate}%`}
-              />
-            ))
-          )}
-        </Section>
-
-        <Section title={`Spot 이력 (${user.spotCount})`}>
-          {spots.length === 0 ? (
-            <Empty />
-          ) : (
-            spots.map((h) => (
-              <Row
-                key={h.id}
-                left={jobById.get(h.jobId)?.title ?? "Spot"}
-                right={`${formatCurrency(h.totalPaid)} · ★${h.rating.toFixed(1)}`}
-              />
-            ))
-          )}
-        </Section>
-
-        <Section title={`AI 상담 이력 (${chats.length})`}>
-          {chats.length === 0 ? (
-            <Empty />
-          ) : (
-            chats.slice(0, 4).map((c) => (
-              <Row key={c.id} left={c.title} right={`${c.messages.length}개 메시지`} />
-            ))
-          )}
-        </Section>
-      </div>
-    </Dialog>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="mb-1.5 text-sm font-semibold text-slate-700">{title}</p>
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
-function Row({ left, right }: { left: string; right: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
-      <span className="min-w-0 truncate text-slate-700">{left}</span>
-      <span className="shrink-0 text-xs text-slate-500">{right}</span>
-    </div>
-  );
-}
-function Empty() {
-  return <p className="px-1 text-xs text-slate-400">이력이 없습니다</p>;
 }

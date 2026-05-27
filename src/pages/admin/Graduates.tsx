@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Avatar } from "@/components/ui/avatar";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/feedback";
+import { PersonDetailDialog, usePersonDetail } from "@/components/details/PersonDetail";
 import { graduateOutcomes, graduateRows } from "@/lib/selectors";
 import { GRADE_LABEL, TRACK_LABEL } from "@/lib/utils";
 import type { Track } from "@/types";
@@ -21,6 +22,7 @@ export default function Graduates() {
   const [q, setQ] = useState("");
   const [track, setTrack] = useState<Track | "all">("all");
   const [emp, setEmp] = useState<"all" | "employed" | "seeking">("all");
+  const person = usePersonDetail();
 
   const filtered = useMemo(
     () =>
@@ -95,7 +97,7 @@ export default function Graduates() {
               </THead>
               <TBody>
                 {filtered.map((r) => (
-                  <TR key={r.user.id}>
+                  <TR key={r.user.id} onClick={() => person.open(r.user.id)}>
                     <TD className="pl-5">
                       <span className="flex items-center gap-2">
                         <Avatar name={r.user.name} color={r.user.avatarColor} size="sm" />
@@ -126,6 +128,8 @@ export default function Graduates() {
           )}
         </CardContent>
       </Card>
+
+      <PersonDetailDialog userId={person.userId} onClose={person.close} />
     </div>
   );
 }
