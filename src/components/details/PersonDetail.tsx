@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Pencil, Plus } from "lucide-react";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
+import type { Counseling, CounselingType } from "@/types";
 import {
   learningSummary,
   userBadges,
@@ -37,8 +44,34 @@ export function PersonDetailDialog({
   userId: string | null;
   onClose: () => void;
 }) {
-  const { db } = useData();
+  const { db, addCounseling, updateCounseling } = useData();
   const { account } = useAuth();
+  const { toast } = useToast();
+
+  // 상담 등록/수정 폼 상태 (운영/관리자 전용)
+  type CForm = {
+    type: CounselingType;
+    counselor: string;
+    date: string; // yyyy-mm-dd
+    summary: string;
+    note: string;
+    nextPlan: string;
+  };
+  const blankForm: CForm = {
+    type: "regular",
+    counselor: "",
+    date: new Date().toISOString().slice(0, 10),
+    summary: "",
+    note: "",
+    nextPlan: "",
+  };
+  const [editingId, setEditingId] = useState<string | "new" | null>(null);
+  const [form, setForm] = useState<CForm>(blankForm);
+  // 다른 사용자 다이얼로그가 열리면 폼 초기화
+  useEffect(() => {
+    setEditingId(null);
+  }, [userId]);
+
   const user = db.users.find((u) => u.id === userId);
   if (!user) return null;
 
@@ -47,7 +80,49 @@ export function PersonDetailDialog({
     account?.role === "operator" ||
     account?.role === "admin" ||
     (account?.role === "youth" && account.userId === user.id);
+  // 등록/수정은 운영자·관리자만 가능
+  const canEdit = account?.role === "operator" || account?.role === "admin";
   const counselings = privileged ? userCounselings(db, user.id) : [];
+
+  const openNew = () => {
+    setForm({ ...blankForm, counselor: account?.name ?? "" });
+    setEditingId("new");
+  };
+  const openEdit = (c: Counseling) => {
+    setForm({
+      type: c.type,
+      counselor: c.counselor,
+      date: c.date.slice(0, 10),
+      summary: c.summary,
+      note: c.note,
+      nextPlan: c.nextPlan,
+    });
+    setEditingId(c.id);
+  };
+  const closeForm = () => setEditingId(null);
+  const saveForm = () => {
+    if (!form.summary.trim()) {
+      toast("요약을 입력하세요", "error");
+      return;
+    }
+    const isoDate = new Date(form.date + "T10:00:00.000Z").toISOString();
+    const payload = {
+      type: form.type,
+      counselor: form.counselor.trim() || "상담사",
+      date: isoDate,
+      summary: form.summary.trim(),
+      note: form.note.trim(),
+      nextPlan: form.nextPlan.trim(),
+    };
+    if (editingId === "new") {
+      addCounseling({ userId: user.id, ...payload });
+      toast("상담이 등록되었습니다");
+    } else if (editingId) {
+      updateCounseling(editingId, payload);
+      toast("상담이 수정되었습니다");
+    }
+    setEditingId(null);
+  };
 
   const enr = userEnrollments(db, user.id);
   const spots = userSpotHistory(db, user.id).slice(0, 5);
@@ -181,9 +256,86 @@ export function PersonDetailDialog({
           </Section>
         </div>
 
-        {/* 상담 내역 — 사업단·본인 전용 */}
+        {/* 상담 내역 — 사업단·본인 열람 / 등록·수정은 운영자/관리자만 */}
         {privileged && (
-          <Section title={`상담 내역 (${counselings.length}) · 사업단·본인 전용`}>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-700">
+                상담 내역 ({counselings.length}) · 사업단·본인 전용
+              </p>
+              {canEdit && !editingId && (
+                <Button size="sm" variant="outline" onClick={openNew}>
+                  <Plus className="h-3.5 w-3.5" /> 상담 추가
+                </Button>
+              )}
+            </div>
+
+            {editingId && (
+              <div className="mb-2 space-y-2 rounded-2xl border border-brand-200 bg-brand-50/40 p-3">
+                <p className="text-sm font-semibold text-slate-700">
+                  {editingId === "new" ? "새 상담 등록" : "상담 수정"}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="종류">
+                    <Select
+                      value={form.type}
+                      onChange={(e) =>
+                        setForm({ ...form, type: e.target.value as CounselingType })
+                      }
+                    >
+                      {(Object.keys(COUNSELING_LABEL) as CounselingType[]).map((k) => (
+                        <option key={k} value={k}>
+                          {COUNSELING_LABEL[k]} 상담
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="상담사">
+                    <Input
+                      value={form.counselor}
+                      onChange={(e) => setForm({ ...form, counselor: e.target.value })}
+                      placeholder="담당 상담사"
+                    />
+                  </Field>
+                </div>
+                <Field label="일자">
+                  <Input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  />
+                </Field>
+                <Field label="요약">
+                  <Textarea
+                    value={form.summary}
+                    onChange={(e) => setForm({ ...form, summary: e.target.value })}
+                    placeholder="상담 요약"
+                  />
+                </Field>
+                <Field label="메모(선택)">
+                  <Textarea
+                    value={form.note}
+                    onChange={(e) => setForm({ ...form, note: e.target.value })}
+                  />
+                </Field>
+                <Field label="다음 계획">
+                  <Input
+                    value={form.nextPlan}
+                    onChange={(e) => setForm({ ...form, nextPlan: e.target.value })}
+                    placeholder="예) 추천 과목 수강"
+                  />
+                </Field>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button size="sm" variant="outline" onClick={closeForm}>
+                    취소
+                  </Button>
+                  <Button size="sm" onClick={saveForm}>
+                    저장
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {counselings.length === 0 ? (
               <Empty />
             ) : (
@@ -194,15 +346,32 @@ export function PersonDetailDialog({
                       <span className="text-sm font-medium text-slate-700">
                         {COUNSELING_LABEL[c.type]} 상담 · {c.counselor}
                       </span>
-                      <span className="text-xs text-slate-400">{formatDate(c.date)}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-slate-400">{formatDate(c.date)}</span>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(c)}
+                            className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                            aria-label="수정"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className="mt-0.5 text-xs text-slate-600">{c.summary}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">다음 계획: {c.nextPlan}</p>
+                    {c.note && (
+                      <p className="mt-0.5 text-[11px] text-slate-500">메모: {c.note}</p>
+                    )}
+                    <p className="mt-0.5 text-[11px] text-slate-400">
+                      다음 계획: {c.nextPlan}
+                    </p>
                   </div>
                 ))}
               </div>
             )}
-          </Section>
+          </div>
         )}
       </div>
     </Dialog>
@@ -245,4 +414,12 @@ function Row({ left, right }: { left: string; right: string }) {
 }
 function Empty() {
   return <p className="px-1 text-xs text-slate-400">이력이 없습니다</p>;
+}
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-0.5 block text-[11px] text-slate-500">{label}</span>
+      {children}
+    </label>
+  );
 }

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { db as seedDb } from "@/data";
-import type { ChatSession, Company, Dataset, Enrollment, SpotHistory } from "@/types";
+import type { ChatSession, Company, Counseling, Dataset, Enrollment, SpotHistory } from "@/types";
 
 interface DataContextValue {
   db: Dataset;
@@ -16,12 +16,19 @@ interface DataContextValue {
   addChatSession: (session: ChatSession) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: (userId: string) => void;
+  // 상담 (운영자 등록/수정)
+  addCounseling: (data: Omit<Counseling, "id">) => void;
+  updateCounseling: (
+    id: string,
+    patch: Partial<Omit<Counseling, "id" | "userId">>
+  ) => void;
 }
 
 const DataContext = React.createContext<DataContextValue | null>(null);
 
 let enrSeq = 100000;
 let sphSeq = 900000;
+let cnsSeq = 800000;
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [db, setDb] = React.useState<Dataset>(seedDb);
@@ -106,6 +113,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const addCounseling = React.useCallback(
+    (data: Omit<Counseling, "id">) => {
+      setDb((prev) => ({
+        ...prev,
+        counselings: [{ id: `cns_${++cnsSeq}`, ...data }, ...prev.counselings],
+      }));
+    },
+    []
+  );
+
+  const updateCounseling = React.useCallback(
+    (id: string, patch: Partial<Omit<Counseling, "id" | "userId">>) => {
+      setDb((prev) => ({
+        ...prev,
+        counselings: prev.counselings.map((c) =>
+          c.id === id ? { ...c, ...patch } : c
+        ),
+      }));
+    },
+    []
+  );
+
   const value: DataContextValue = {
     db,
     appliedSpots,
@@ -120,6 +149,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     addChatSession,
     markNotificationRead,
     markAllNotificationsRead,
+    addCounseling,
+    updateCounseling,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
