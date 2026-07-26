@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles, GraduationCap, Building2 } from "lucide-react";
+import { ArrowRight, FlaskConical, Sparkles, GraduationCap, Building2 } from "lucide-react";
 import { BRAND } from "@/config/brand";
 import { BrandIcon } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
@@ -31,10 +31,15 @@ export default function Landing() {
           부담 없는 Spot Work로 시작해 작은 성취와 보상을 쌓고, 교육·일경험·포트폴리오를
           거쳐 협약기업 취업까지 한 곳에서 연결합니다.
         </p>
-        <div className="mt-7 flex items-center justify-center gap-3">
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link to="/login">
             <Button size="lg">
               시작하기 <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link to="/experience">
+            <Button size="lg" variant="outline">
+              <FlaskConical className="h-4 w-4" /> 수업 체험하기
             </Button>
           </Link>
         </div>

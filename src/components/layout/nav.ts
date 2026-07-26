@@ -3,6 +3,7 @@ import {
   Building2,
   BookOpen,
   FileBarChart,
+  FlaskConical,
   GraduationCap,
   Home,
   LayoutDashboard,
@@ -35,6 +36,7 @@ export const YOUTH_NAV: NavItem[] = [
   { to: "/me", label: "홈", icon: Home, end: true },
   { to: "/spot", label: "Spot", icon: Sparkles },
   { to: "/courses", label: "학습", icon: BookOpen },
+  { to: "/experience", label: "체험", icon: FlaskConical },
   { to: "/jobs", label: "채용", icon: Briefcase },
   { to: "/chat", label: "AI", icon: MessageCircle },
 ];

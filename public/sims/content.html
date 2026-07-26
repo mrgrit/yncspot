@@ -1,0 +1,612 @@
+<meta charset="utf-8">
+<title>야근냥 스튜디오 — AI콘텐츠크리에이터 파이프라인 데모</title>
+<style>
+  :root{
+    --paper:#FFF7F2;--card:#FFFFFF;--soft:#FFF1E9;
+    --ink:#4A3A44;--ink2:#8D7A86;--ink3:#BCACB6;
+    --pink:#FF8FAA;--pinkL:#FFE2E9;
+    --mint:#4FC9AE;--mintL:#D5F5EC;
+    --butter:#FFB94A;--butterL:#FFEECE;
+    --lilac:#A187E2;--lilacL:#EBE3FC;
+    --sky:#5FB6DE;--skyL:#DBEFFA;
+    --red:#F26B68;--redL:#FFE1E0;
+    --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  svg{image-rendering:pixelated;display:block}
+  .wrap{max-width:1120px;margin:0 auto;padding:26px 20px 64px}
+  button{font-family:var(--sans);cursor:pointer}
+  button:focus-visible,input:focus-visible{outline:3px solid var(--lilac);outline-offset:2px}
+
+  /* ── header ── */
+  header{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+  .who{display:flex;align-items:center;gap:14px}
+  .avat{background:var(--butterL);border:3px solid var(--ink);border-radius:22px;padding:7px 9px;box-shadow:4px 4px 0 var(--butter)}
+  h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .who p{margin:2px 0 0;font-size:12.5px;color:var(--ink2)}
+  .pills{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{background:var(--card);border:3px solid var(--ink);border-radius:16px;padding:6px 13px;text-align:center;min-width:78px;box-shadow:3px 3px 0 var(--pinkL)}
+  .pill span{display:block;font-size:10.5px;color:var(--ink2);font-weight:600}
+  .pill b{font-size:19px;font-weight:700}
+  .pill.m{box-shadow:3px 3px 0 var(--mintL)} .pill.b{box-shadow:3px 3px 0 var(--butterL)} .pill.l{box-shadow:3px 3px 0 var(--lilacL)}
+
+  /* ── tabs ── */
+  .tabs{display:flex;gap:9px;margin-bottom:16px}
+  .tabs button{font-size:14px;font-weight:700;padding:9px 22px;background:var(--card);border:3px solid var(--ink);border-radius:16px;color:var(--ink2);box-shadow:3px 3px 0 var(--soft)}
+  .tabs button[aria-selected="true"]{background:var(--butterL);color:var(--ink);box-shadow:3px 3px 0 var(--butter)}
+
+  /* ── section ── */
+  .sec{margin-bottom:22px}
+  .st{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:3px solid var(--ink);border-radius:14px 14px 0 0;border-bottom:0;padding:7px 16px;font-weight:700;font-size:14px;position:relative;top:3px}
+  .body{background:var(--card);border:3px solid var(--ink);border-radius:0 18px 18px 18px;padding:18px;box-shadow:5px 5px 0 var(--soft)}
+  .no{font-size:13px;font-weight:800;color:var(--pink)}
+
+  /* ── stage 1 ── */
+  .front{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .fs{background:var(--soft);border:2.5px solid var(--ink);border-radius:16px;padding:13px 15px}
+  .fs.need{background:var(--redL)}
+  .fs .k{font-size:11px;font-weight:700;color:var(--ink2)}
+  .fs .t{font-size:14.5px;font-weight:700;margin:2px 0 4px}
+  .fs .d{font-size:12.5px;color:var(--ink2);line-height:1.55}
+  .fs .m{font-size:12px;font-weight:700;color:var(--mint);margin-top:7px}
+  .fs.need .m{color:var(--red)}
+  .mini{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .mini button{font-size:12px;font-weight:600;padding:6px 12px;background:var(--card);border:2.5px solid var(--ink);border-radius:12px;color:var(--ink2)}
+  .mini button[aria-pressed="true"]{background:var(--pinkL);color:var(--ink);box-shadow:2px 2px 0 var(--pink)}
+
+  /* ── stage 2 ── */
+  .grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px}
+  .ch{border:3px solid var(--ink);border-radius:16px;padding:11px;background:var(--card);transition:transform .12s}
+  .ch:hover{transform:translateY(-3px)}
+  .ch.sel{box-shadow:4px 4px 0 var(--ink)}
+  .ch.off{opacity:.45}
+  .ch .cap{border-radius:11px;padding:9px 0;display:flex;justify-content:center;border:2.5px solid var(--ink);margin-bottom:8px}
+  .ch .nm{font-size:12.5px;font-weight:700;line-height:1.3;cursor:pointer}
+  .ch .kd{font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;display:inline-block;margin-top:4px}
+  .kd.real{background:var(--mintL);color:#1F7A66} .kd.virt{background:var(--lilacL);color:#5B3EA8}
+  .ch .who2{display:flex;align-items:center;gap:5px;margin-top:7px;font-size:11px;font-weight:600;color:var(--ink3);min-height:20px}
+  .ch .who2.on{color:var(--mint)}
+  .sw{width:100%;margin-top:8px;font-size:11.5px;font-weight:700;padding:6px;border:2.5px solid var(--ink);border-radius:11px;background:var(--card);color:var(--ink3)}
+  .sw.on{background:var(--mintL);color:#1F7A66}
+
+  /* ── stage 3 ── */
+  .det{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1fr) minmax(0,1.25fr);gap:14px}
+  .dc{background:var(--soft);border:2.5px solid var(--ink);border-radius:16px;padding:14px}
+  .cl{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:9px}
+  .box{background:var(--card);border:2px solid var(--ink);border-radius:12px;padding:9px 11px;font-size:12.5px;color:var(--ink2)}
+  .box+.box{margin-top:7px}
+  .box b{display:block;color:var(--ink);font-size:12.5px}
+  .slot{background:var(--card);border:2.5px dashed var(--ink3);border-radius:14px;padding:13px;text-align:center;margin-bottom:11px}
+  .slot.on{border-style:solid;border-color:var(--ink);background:var(--mintL)}
+  .slot svg{margin:0 auto 6px}
+  .slot .an{font-size:13px;font-weight:700}
+  .slot .ar{font-size:11.5px;color:var(--ink2)}
+  .slot .em{font-size:12px;color:var(--ink2);line-height:1.55}
+  .dial{margin-bottom:11px}
+  .dial .dl{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px}
+  .dial .dv{color:var(--pink);font-weight:700}
+  input[type=range]{width:100%;accent-color:var(--pink);height:22px}
+  .prev{background:var(--card);border:2px solid var(--ink);border-radius:13px;padding:11px 13px}
+  .prev+.prev{margin-top:8px}
+  .prev .ph{font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:3px}
+  .prev .pt{font-size:13.5px;font-weight:600}
+  .prev .pm{font-size:12px;color:var(--ink2);margin-top:4px}
+  .tags{font-size:11.5px;color:var(--sky);font-weight:600;margin-top:6px;word-break:break-all;line-height:1.7}
+
+  .note{border:2.5px solid var(--ink);border-radius:13px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:9px}
+  .note.warn{background:var(--redL);color:#A83A38}
+  .note.pass{background:var(--mintL);color:#1F7A66}
+  .note.man{background:var(--butterL);color:#8A5A05}
+  .note.rule{background:var(--skyL);color:#245B78}
+  .note.rule b{color:#123f57}
+
+  .btn{display:block;width:100%;font-size:13.5px;font-weight:700;padding:11px;border:3px solid var(--ink);border-radius:14px;background:var(--card);color:var(--ink);box-shadow:3px 3px 0 var(--soft)}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--soft)}
+  .btn.go{background:var(--mintL);box-shadow:3px 3px 0 var(--mint)}
+  .btn.big{background:var(--butterL);box-shadow:4px 4px 0 var(--butter);font-size:15px;padding:13px}
+  .btn.ok{background:var(--pinkL);box-shadow:3px 3px 0 var(--pink)}
+
+  .log{background:var(--soft);border:2.5px solid var(--ink);border-radius:14px;padding:11px 14px;font-size:12.5px;color:var(--ink2);max-height:140px;overflow:auto;margin-top:12px}
+  .log div{padding:2px 0}
+  .log .ok{color:#1F7A66;font-weight:600} .log .hd{color:#A83A38;font-weight:600} .log .vt{color:#5B3EA8;font-weight:600}
+
+  /* ── 발행 캘린더 ── */
+  #cal{overflow-x:auto}
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-top:9px}
+  .cal .day{border:2.5px solid var(--ink);border-radius:12px;padding:7px 6px 9px;min-height:66px;background:var(--soft)}
+  .cal .dh{font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:5px;text-align:center}
+  .cal .cd{font-size:10px;font-weight:700;border-radius:8px;padding:3px 5px;margin-top:4px;display:flex;align-items:center;gap:4px;border:2px solid var(--ink);background:var(--card);line-height:1.2}
+  .cal .cdot{width:8px;height:8px;border-radius:3px;flex:0 0 auto;border:1px solid var(--ink)}
+  .cal .empty{font-size:10px;color:var(--ink3);text-align:center;margin-top:12px}
+
+  /* ── stage 5 ── */
+  .pgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .pc{border:2.5px solid var(--ink);border-radius:16px;padding:13px;background:var(--card)}
+  .pc .pn{font-size:13px;font-weight:700}
+  .pc .pk{font-size:11px;color:var(--ink2)}
+  .pc .pv{display:flex;align-items:baseline;gap:6px;margin-top:6px}
+  .pc .pv b{font-size:23px;font-weight:800}
+  .pc .pv i{font-style:normal;font-size:12px;color:var(--ink2)}
+  .pc .dlt{font-size:10.5px;font-weight:700;margin-top:6px;display:inline-block;padding:2px 9px;border-radius:9px;border:2px solid var(--ink)}
+  .dlt.up{background:var(--mintL);color:#1F7A66} .dlt.down{background:var(--redL);color:#A83A38} .dlt.same{background:var(--soft);color:var(--ink2)}
+  .pc .q{display:flex;justify-content:space-between;align-items:center;margin-top:8px;background:var(--soft);border-radius:11px;padding:6px 10px}
+  .pc .q span{font-size:11.5px;font-weight:600;color:var(--ink2)}
+  .pc .q em{font-style:normal;font-size:14px;font-weight:800}
+  .pc .rev{font-size:11.5px;color:var(--ink2);margin-top:7px;line-height:1.5}
+
+  .tl{margin-left:8px;padding-left:18px;border-left:3px solid var(--ink3)}
+  .tl div{position:relative;padding:6px 0;font-size:12.5px;color:var(--ink2)}
+  .tl div:before{content:"";position:absolute;left:-25px;top:12px;width:11px;height:11px;border-radius:50%;background:var(--card);border:3px solid var(--ink3)}
+  .tl div.ok:before{background:var(--mint);border-color:var(--ink)}
+  .tl div.no:before{background:var(--red);border-color:var(--ink)}
+  .tl b{color:var(--ink)}
+  .tl .w{font-weight:700;color:var(--ink3);margin-right:8px;font-size:11.5px}
+
+  .ins{background:var(--lilacL);border:3px solid var(--ink);border-radius:16px;padding:15px 17px;margin-top:16px;box-shadow:4px 4px 0 var(--lilac)}
+  .ins .it{font-size:14.5px;font-weight:700;margin-bottom:7px}
+  .ins ul{margin:0 0 12px;padding-left:18px;font-size:12.5px;color:var(--ink2)}
+  .ins li{padding:3px 0}
+  .money{background:var(--soft);border:2.5px dashed var(--ink3);border-radius:14px;padding:10px 14px;margin-top:13px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .money .ml{font-size:12px;color:var(--ink2);font-weight:600}
+  .money .mv{font-size:16px;font-weight:700;color:var(--ink2)}
+  .money .mv em{font-style:normal;font-size:12px;font-weight:700;margin-left:6px}
+
+  /* ── portfolio ── */
+  .pfh{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+  .pfh .nm b{font-size:19px;font-weight:800;display:block}
+  .pfh .nm span{font-size:12px;color:var(--ink2)}
+  .pfb{display:flex;gap:7px;flex-wrap:wrap}
+  .pb{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:12px;border:2.5px solid var(--ink);background:var(--card)}
+  .pb.g{background:var(--mintL)} .pb.t{background:var(--skyL)} .pb.y{background:var(--butterL)}
+  .wg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .wk{border:3px solid var(--ink);border-radius:16px;padding:11px;background:var(--card);box-shadow:4px 4px 0 var(--soft)}
+  .wk:nth-child(3n){transform:rotate(-1.2deg)}
+  .wk:nth-child(3n+2){transform:rotate(.9deg)}
+  .wk .th{border:2.5px solid var(--ink);border-radius:12px;padding:12px 0;display:flex;justify-content:center;margin-bottom:9px}
+  .wk .wn{font-size:13px;font-weight:700}
+  .wk .wc{font-size:11.5px;color:var(--ink2)}
+  .wk .wm{font-size:12px;font-weight:700;color:var(--mint);margin-top:7px;border-top:2px dashed var(--ink3);padding-top:7px}
+  .share{background:var(--skyL);border:2.5px solid var(--ink);border-radius:13px;padding:10px 14px;margin-top:16px;font-size:12.5px;font-weight:600;word-break:break-all}
+  .none{color:var(--ink2);font-size:13px;text-align:center;padding:26px;border:2.5px dashed var(--ink3);border-radius:16px}
+
+  @media(max-width:1000px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.front,.det{grid-template-columns:1fr}.pgrid,.wg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:600px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cal{min-width:480px}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}.wk{transform:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="who">
+    <div class="avat" id="avat"></div>
+    <div><h1>야근냥 스튜디오</h1><p>그리고, 다듬고, 여기저기 올리고, 반응을 봅니다 · AI콘텐츠크리에이터</p></div>
+  </div>
+  <div class="pills">
+    <div class="pill l"><span>사이클</span><b id="s0">1</b></div>
+    <div class="pill"><span>켜둔 채널</span><b id="s1">0</b></div>
+    <div class="pill m"><span>만든 것</span><b id="s2">0</b></div>
+    <div class="pill b"><span>주간 자동</span><b id="s3">0</b></div>
+  </div>
+</header>
+
+<div class="tabs" role="tablist">
+  <button id="tb1" role="tab" aria-selected="true">작업실</button>
+  <button id="tb2" role="tab" aria-selected="false">포트폴리오</button>
+</div>
+
+<div id="console">
+  <div class="sec"><div class="st"><span class="no">1</span>기획하고 그리기</div>
+    <div class="body"><div class="front" id="front"></div></div></div>
+  <div class="sec"><div class="st"><span class="no">2</span>어디에 올릴까</div>
+    <div class="body"><div class="grid" id="grid"></div></div></div>
+  <div class="sec"><div class="st"><span class="no">3</span>담당 에이전트 조정 <span id="dn" style="color:var(--ink2);font-weight:600"></span></div>
+    <div class="body"><div class="det" id="det"></div></div></div>
+  <div class="sec"><div class="st"><span class="no">4</span>한 번에 올리기</div>
+    <div class="body"><button class="btn big" id="run">켜둔 채널에 모두 올리기</button>
+      <div class="log" id="log"><div>아직 아무것도 안 올렸어요. 채널을 켜고 에이전트를 배치해 주세요.</div></div>
+      <div class="cl" style="margin-top:15px">이번 주 발행 미리보기 <span style="color:var(--ink3);font-weight:600">· 켜둔 자동 채널이 주 n회에 맞춰 요일별로 예약돼요</span></div>
+      <div id="cal"></div>
+      <div class="note man" style="margin-top:9px">예약이라도 실제 업로드 직전엔 학생이 한 번 승인해요. 그냥 자동으로 올라가지 않습니다.</div>
+    </div></div>
+  <div class="sec"><div class="st"><span class="no">5</span>반응 보기</div>
+    <div class="body" id="perf"></div></div>
+</div>
+<div id="folio" hidden></div>
+</div>
+
+<script>
+const $=i=>document.getElementById(i);
+const F=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+const N=n=>n.toLocaleString();
+function cat(m,s){const D="#4A3A44";let e;
+ if(m===1)e=F(5,6,3,1,D)+F(9,6,3,1,D);
+ else if(m===2)e=F(5,6,2,2,D)+F(10,6,2,2,D);
+ else if(m===3)e=F(5,5,1,3,D)+F(6,7,1,1,D)+F(9,5,1,3,D)+F(10,7,1,1,D);
+ else e=F(5,6,2,2,D)+F(9,6,2,2,D);
+ const mo=m===2?F(6,9,4,1,D)+F(6,10,1,1,D)+F(9,10,1,1,D):m===3?F(6,10,4,1,D):F(7,9,2,1,D);
+ return `<svg viewBox="0 0 16 16" width="${s}" height="${s}">`+F(3,3,10,9,"#E8B87A")+F(3,2,2,3,"#E8B87A")+F(11,2,2,3,"#E8B87A")
+  +F(4,4,3,2,"#F5D6AE")+e+mo+`</svg>`;}
+function fairy(c,s){return `<svg viewBox="0 0 16 16" width="${s}" height="${s}">`
+ +F(4,1,8,3,"#5C4658")+F(5,4,6,4,"#F3D3B8")+F(6,5,1,1,"#4A3A44")+F(9,5,1,1,"#4A3A44")+F(7,6,2,1,"#E28B9E")
+ +F(4,8,8,5,c)+F(5,13,2,3,"#5C4658")+F(9,13,2,3,"#5C4658")+`</svg>`;}
+function glyph(g,c){return `<svg viewBox="0 0 16 16" width="24" height="24">`+g.map(r=>F(r[0],r[1],r[2],r[3],r[4]||c)).join("")+`</svg>`;}
+function bar(v,c){const mx=Math.max(...v)||1;
+ return `<svg viewBox="0 0 76 24" width="76" height="24">`+v.map((x,i)=>F(i*10,24-Math.max(3,x/mx*22),7,Math.max(3,x/mx*22),c)).join("")+`</svg>`;}
+function series(f,n){const a=[];for(let i=0;i<n;i++)a.push(Math.round(f*(0.32+0.68*i/(n-1))*(0.88+((i*41)%17)/70)));a[n-1]=Math.round(f);return a;}
+function gr(){return 1+(CYC-1)*0.09;}
+
+const G={cam:[[2,4,12,9],[6,2,4,2],[6,7,4,4,"#FFF7F2"]],play:[[2,3,12,10],[6,6,2,4,"#FFF7F2"],[8,7,2,2,"#FFF7F2"]],
+ doc:[[3,1,10,14],[5,4,6,1,"#FFF7F2"],[5,7,6,1,"#FFF7F2"],[5,10,4,1,"#FFF7F2"]],chat:[[2,3,12,8],[5,12,3,2],[5,6,6,1,"#FFF7F2"]],
+ stk:[[3,2,10,12],[9,10,4,4,"#FFF7F2"],[5,5,2,2,"#FFF7F2"],[9,5,2,2,"#FFF7F2"]],tee:[[4,3,8,11],[1,3,4,4],[11,3,4,4]],
+ book:[[2,2,12,12],[7,2,2,12,"#FFF7F2"]],frame:[[1,2,14,11],[3,4,10,7,"#FFF7F2"]],case:[[1,5,14,8],[6,2,4,3],[7,8,2,2,"#FFF7F2"]],
+ note:[[5,3,2,9],[11,3,2,9],[5,2,8,2],[3,10,4,3],[9,10,4,3]],
+ emo:[[3,2,10,12],[5,5,2,2,"#FFF7F2"],[9,5,2,2,"#FFF7F2"],[5,9,6,1,"#FFF7F2"],[6,10,4,1,"#FFF7F2"]],
+ clip:[[4,1,8,14],[5,3,6,9,"#FFF7F2"],[7,6,3,3]],
+ fund:[[4,3,3,1],[9,3,3,1],[3,4,10,2],[4,6,8,1],[5,7,6,1],[6,8,4,1],[7,9,2,1]]};
+
+const TONE=["아주 담백","담백","보통","유쾌","아주 유쾌"];
+const CAPS=["오늘도 남았다.","불 꺼진 사무실, 나 혼자.","야근냥은 오늘도 모니터 앞이다","퇴근? 그게 뭔데 🐈","오늘도 사무실 지박령 등장 🐈‍⬛✨"];
+const TITL=["야근하는 고양이","야근냥의 하루","야근냥이 퇴근 못 한 이유","이 고양이가 퇴근 못 하는 이유","퇴근 실패한 고양이가 하는 짓"];
+const CN=["퇴근 못한 냥","상사 눈치냥","월급날냥"];
+
+// ── OGQ 심사 반려 사유: 설정에 따라 여백·해상도·유사도로 갈립니다 ──
+function ogqReject(v){
+  if(v.pad<8)return{r:"여백 부족",x:`이모티콘 여백이 ${v.pad}px예요. 8px 이상 필요해요`,fix:"여백을 8px 이상으로"};
+  if(v.res===0)return{r:"해상도 낮음",x:"해상도가 낮아 확대하면 뭉개져요. '보통' 이상으로 올려요",fix:"해상도를 보통 이상으로"};
+  if(v.set>=40)return{r:"유사도 높음",x:`${v.set}종을 우겨넣어 비슷한 표정이 많대요. 종수를 줄이거나 표정을 다양하게`,fix:"종수를 줄이고 표정 다양화"};
+  return null;
+}
+
+const CH=[
+{id:"ig",n:"인스타그램",k:"real",g:"cam",bgc:"pinkL",dot:"#FF8FAA",agent:"소셜 큐레이터",role:"사진과 캡션 담당",mood:0,
+ rule:"인스타는 AI로 만든 이미지엔 'AI 정보' 표시를 권장해요.",
+ inp:[["그림","포즈 4 · 표정 12"],["글감","캐릭터 설정문"]],
+ d:[{i:"tone",l:"말투",min:0,max:4,s:1},{i:"tag",l:"해시태그",min:3,max:20,s:1,u:"개"},{i:"wk",l:"주 몇 번",min:1,max:7,s:1,u:"회"}],
+ def:{tone:1,tag:8,wk:3},
+ out(v){const T=["#야근","#직장인","#고양이","#야근냥","#퇴근하고싶다","#일상툰","#캐릭터","#픽셀아트","#오늘도수고","#사축","#월급루팡","#디자인","#굿즈","#이모티콘","#힘내자","#회사원","#카페인","#주말","#퇴근각","#공감"].slice(0,v.tag);
+  return{items:[{h:"이렇게 올라가요",t:CAPS[v.tone],m:`그림 1장 + 글 · 주 ${v.wk}번 자동`,tags:T.join(" ")}],
+   note:v.tag>15?{c:"warn",x:"해시태그가 너무 많으면 스팸으로 볼 수 있어요"}:null,weekly:v.wk,cnt:v.wk*4};},
+ perf(v){const r=Math.round(2100*v.wk*(1+v.tone*0.16)*(v.tag>15?0.62:1)*gr());
+  return{main:["본 사람",r,"명"],q:["저장률",(4.6-v.tone*0.72).toFixed(1)+"%"],rev:0,ok:1,
+   note:v.tone>=3?"많이 봤지만 저장은 줄었어요":"저장률이 평균(1.1%)보다 훨씬 높아요"};}},
+
+{id:"yt",n:"유튜브 쇼츠",k:"real",g:"play",bgc:"redL",dot:"#F26B68",agent:"영상 편집자",role:"짧은 영상 담당",mood:2,
+ rule:"유튜브는 진짜처럼 보이는 AI 합성 영상에 '변경·합성 콘텐츠' 표기가 필수예요.",
+ inp:[["그림","4컷 웹툰 3편"],["썸네일","6종"]],
+ d:[{i:"hook",l:"낚시 강도",min:0,max:4,s:1},{i:"len",l:"길이",min:15,max:60,s:5,u:"초"},{i:"wk",l:"주 몇 번",min:1,max:5,s:1,u:"회"}],
+ def:{hook:2,len:30,wk:2},
+ rwarn(v){return v.hook>=3?"AI로 과장한 썸네일·제목은 '오해 유발'로 신고될 수 있어요. AI 표기를 꼭 켜세요":null;},
+ out(v){return{items:[{h:"제목",t:TITL[v.hook],m:`${v.len}초 · 컷 ${Math.max(3,Math.round(v.len/6))}개 · 주 ${v.wk}번`},
+  {h:"구성",t:`0초 훅 → ${Math.round(v.len*.3)}초 전개 → ${Math.round(v.len*.8)}초 반전`,m:"자막 자동 생성"}],
+  note:v.hook===4?{c:"warn",x:"제목이 너무 세면 오히려 덜 보여줘요"}:null,weekly:v.wk,cnt:v.wk*4};},
+ perf(v){const w=Math.round(3400*v.wk*(1+v.hook*0.38)*gr());
+  return{main:["조회",w,"회"],q:["끝까지 본 비율",Math.round(64-v.hook*6.5-(v.len-15)*0.28)+"%"],rev:Math.round(w*0.35),ok:1,
+   note:v.hook>=3?"조회는 높은데 끝까지 안 봐요. 제목과 내용이 달라요":"끝까지 보는 비율이 안정적이에요"};}},
+
+{id:"tt",n:"틱톡",k:"real",g:"note",bgc:"redL",dot:"#F26B68",agent:"트렌드 편집자",role:"세로 영상 담당",mood:2,
+ rule:"틱톡은 AI로 만든 영상에 'AI 생성' 라벨을 반드시 붙여야 해요.",
+ inp:[["그림","움짤용 소스"],["사운드","트렌드 음악"]],
+ d:[{i:"trend",l:"유행 따르기",min:0,max:4,s:1},{i:"len",l:"길이",min:9,max:60,s:3,u:"초"},{i:"wk",l:"주 몇 번",min:1,max:7,s:1,u:"회"}],
+ def:{trend:2,len:15,wk:3},
+ rwarn(v){return v.trend>=4?"유행 사운드를 그대로 쓰면 음원 저작권에 걸릴 수 있어요. 무료 음원으로 바꿔요":null;},
+ out(v){const T=["안 따름","살짝","보통","적극","완전 유행"][v.trend];
+  return{items:[{h:"제목",t:TITL[v.trend],m:`${v.len}초 · 유행 ${T} · 주 ${v.wk}번`},
+   {h:"구성",t:"훅 → 반복되는 동작 → 마무리 밈",m:"트렌드 음악에 맞춰 컷 편집 · AI 라벨 자동"}],
+  note:v.trend>=4?{c:"warn",x:"유행만 좇으면 내 캐릭터 색이 안 보여요"}:null,weekly:v.wk,cnt:v.wk*4};},
+ perf(v){const w=Math.round(4200*v.wk*(1+v.trend*0.34)*gr());
+  return{main:["조회",w,"회"],q:["공유율",(3.2+v.trend*0.4).toFixed(1)+"%"],rev:0,ok:1,
+   note:v.trend>=4?"조회는 터졌는데 팔로우 전환은 낮아요":"유행에 살짝 얹으니 반응이 좋아요"};}},
+
+{id:"clip",n:"네이버 클립",k:"real",g:"clip",bgc:"mintL",dot:"#4FC9AE",agent:"클립 편집자",role:"세로 영상·쇼핑 연결",mood:2,
+ rule:"네이버 클립은 AI로 만든 영상에 AI 표기를 권장해요. 검색·쇼핑 연결이 강점이에요.",
+ inp:[["그림","세로 영상 소스"],["태그","쇼핑 연결 태그"]],
+ d:[{i:"topic",l:"주제 묶기",min:0,max:2,s:1},{i:"len",l:"길이",min:10,max:90,s:10,u:"초"},{i:"wk",l:"주 몇 번",min:1,max:5,s:1,u:"회"}],
+ def:{topic:1,len:30,wk:2},
+ out(v){const T=["자유롭게","느슨하게","시리즈로"][v.topic];
+  return{items:[{h:"이렇게 올라가요",t:`${TITL[1]} 외`,m:`${v.len}초 · ${T} 묶기 · 주 ${v.wk}번`},
+   {h:"연결",t:"굿즈샵 상품과 자동 연결",m:"영상에서 바로 구매로 이동"}],note:null,weekly:v.wk,cnt:v.wk*4};},
+ perf(v){const p=Math.round(1800*v.wk*(1+v.topic*0.3)*gr());
+  return{main:["재생",p,"회"],q:["상품 클릭",Math.round(p*0.018)+"회"],rev:0,ok:1,
+   note:v.topic===2?"시리즈로 묶으니 다음 편으로 잘 넘어가요":"검색에서 꾸준히 유입돼요"};}},
+
+{id:"bl",n:"블로그",k:"real",g:"doc",bgc:"butterL",dot:"#FFB94A",agent:"기록 담당",role:"긴 글 담당",mood:0,
+ rule:"블로그 글은 AI 도움을 받았다면 밝혀 두는 게 신뢰에 좋아요.",
+ inp:[["작업 기록","기획·작화 로그"],["사진","과정 캡처"]],
+ d:[{i:"len",l:"글 길이",min:600,max:3000,s:200,u:"자"},{i:"info",l:"정보 비중",min:0,max:4,s:1},{i:"wk",l:"주 몇 번",min:1,max:3,s:1,u:"회"}],
+ def:{len:1400,info:3,wk:1},
+ out(v){const s=["감성 위주","감성 우세","반반","정보 우세","정보 위주"][v.info];
+  return{items:[{h:"제목",t:"캐릭터 하나로 여러 채널에 올리기까지",m:`${v.len}자 · ${s} · 주 ${v.wk}번`},
+  {h:"목차",t:"컨셉 → 원화 → 규격 → 각색 → 결과",m:"사진 6장 자동 삽입"}],note:null,weekly:v.wk,cnt:v.wk*4};},
+ perf(v){const x=Math.round(420*v.wk*(1+v.info*0.22)*(v.len/1400)*gr());
+  return{main:["방문",x,"명"],q:["머문 시간",Math.round(48+v.len*0.045+v.info*9)+"초"],rev:0,ok:1,
+   note:"검색으로 꾸준히 들어와요. 기록형 글이 오래 살아요"};}},
+
+{id:"x",n:"X",k:"real",g:"chat",bgc:"skyL",dot:"#5FB6DE",agent:"짧은 글 담당",role:"한 줄 담당",mood:1,
+ rule:"X는 AI로 만든 미디어에 라벨·출처 표기를 권장해요.",
+ inp:[["그림","표정 12종"],["글감","캡션 세트"]],
+ d:[{i:"tone",l:"말투",min:0,max:4,s:1},{i:"wk",l:"주 몇 번",min:1,max:14,s:1,u:"회"}],
+ def:{tone:2,wk:5},
+ out(v){return{items:[{h:"이렇게 올라가요",t:CAPS[v.tone],m:`그림 1장 · 주 ${v.wk}번 자동`}],
+  note:v.wk>10?{c:"warn",x:"너무 자주 올리면 봇으로 의심받아요"}:null,weekly:v.wk,cnt:v.wk*4};},
+ perf(v){const i=Math.round(760*v.wk*(v.wk>10?0.55:1)*gr());
+  return{main:["노출",i,"회"],q:["반응률",(2.9-Math.abs(v.tone-2)*0.5).toFixed(1)+"%"],rev:0,ok:1,
+   note:v.wk>10?"너무 자주 올려서 노출이 줄었어요":"반응률이 안정적이에요"};}},
+
+{id:"ogq",n:"OGQ마켓",k:"real",g:"stk",bgc:"mintL",dot:"#4FC9AE",agent:"심사 담당",role:"이모티콘 심사 대응",mood:3,
+ rule:"OGQ는 AI 생성물도 등록되지만 심사 때 창작 과정을 밝혀야 해요.",
+ inp:[["이모티콘","세트"],["소개글","콘셉트 설명"]],
+ d:[{i:"pad",l:"여백",min:0,max:16,s:1,u:"px"},{i:"res",l:"해상도",min:0,max:2,s:1},{i:"set",l:"몇 종",min:12,max:40,s:4,u:"종"}],
+ def:{pad:4,res:1,set:24},
+ out(v){const rj=ogqReject(v);
+  return{items:[{h:"제출할 것",t:`정지 이모티콘 ${v.set}종 · 여백 ${v.pad}px · 해상도 ${["낮음","보통","높음"][v.res]}`,m:"투명 배경 · 740×640"}],
+   note:rj?{c:"warn",x:rj.x}:{c:"pass",x:"규격을 지켰어요. 떨어져도 이유를 알려줍니다"},
+   weekly:0,cnt:v.set,block:!!rj};},
+ perf(v){const rj=ogqReject(v),sold=Math.round(v.set*1.6*gr());
+  return{main:["심사",rj?"반려":"통과",""],q:["판매",rj?"—":sold+"건"],rev:rj?0:Math.round(sold*580),ok:rj?0:1,
+   note:rj?`${rj.r}(으)로 떨어졌어요. ${rj.fix} 고쳐서 다시 내요`:"한 번 떨어진 뒤 지적받은 곳을 고쳐서 통과했어요"};}},
+
+{id:"kk",n:"카카오 이모티콘",k:"real",g:"emo",bgc:"butterL",dot:"#FFB94A",agent:"심사 담당",role:"이모티콘 제안 대응",mood:3,
+ rule:"카카오는 이모티콘 제안 시 AI를 썼다면 그 사실을 고지하도록 안내해요.",
+ inp:[["이모티콘","제안용 세트"],["제안서","콘셉트·타깃"]],
+ d:[{i:"cnt",l:"몇 종",min:8,max:40,s:8,u:"종"},{i:"move",l:"움직임",min:0,max:2,s:1}],
+ def:{cnt:32,move:0},
+ out(v){const M=["멈춘","조금 움직이는","크게 움직이는"][v.move],bad=v.cnt<8;
+  return{items:[{h:"제안할 것",t:`${M} 이모티콘 ${v.cnt}종`,m:"360×360 · 제안 심사 대기줄이 길어요"}],
+   note:bad?{c:"warn",x:"카카오는 멈춘 24종·움직이는 24종처럼 규격 수가 정해져 있어요"}:{c:"pass",x:"제안 규격을 맞췄어요. 승인율은 낮지만 도전 가치가 커요"},
+   weekly:0,cnt:v.cnt,block:bad};},
+ perf(v){const bad=v.cnt<8;
+  return{main:["제안",bad?"반려":"심사 대기",""],q:["예상 대기",bad?"—":"2~4주"],rev:0,ok:bad?0:1,
+   note:bad?"규격 수를 못 맞춰 반려됐어요. 24·32종처럼 맞춰요":"제안은 접수됐지만 승인율이 낮아요. 될 때까지 도전하는 게 목적이에요"};}},
+
+{id:"line",n:"라인 스티커",k:"real",g:"stk",bgc:"mintL",dot:"#4FC9AE",agent:"심사 담당",role:"스티커 심사 대응",mood:0,
+ rule:"라인은 AI를 썼더라도 본인 창작·저작권 보유에 동의해야 등록돼요.",
+ inp:[["스티커","표정 세트"],["가이드","라인 규격표"]],
+ d:[{i:"cnt",l:"몇 개",min:8,max:40,s:8,u:"개"},{i:"ani",l:"움직임",min:0,max:1,s:1}],
+ def:{cnt:16,ani:0},
+ out(v){return{items:[{h:"제출할 것",t:`${v.ani?"움직이는":"멈춰 있는"} 스티커 ${v.cnt}개`,m:"370×320 · 메인 1 · 탭 1"}],
+  note:{c:"pass",x:"8개나 16개만으로도 낼 수 있어서 첫 도전에 좋아요"},weekly:0,cnt:v.cnt};},
+ perf(v){const sold=Math.round(v.cnt*0.5*gr());
+  return{main:["심사","승인",""],q:["판매",sold+"건"],rev:Math.round(sold*900),ok:1,
+   note:"통과는 쉬웠지만 경쟁이 심해요. 첫 성공 경험이 목적이에요"};}},
+
+{id:"mp",n:"굿즈샵",k:"real",g:"tee",bgc:"lilacL",dot:"#A187E2",agent:"굿즈 담당",role:"상품 등록 담당",mood:2,
+ rule:"굿즈는 AI 이미지도 팔 수 있지만 상품 설명에 표기하는 게 안전해요.",
+ inp:[["시안","고해상도 이미지"],["상품 설명","자동 작성"]],
+ d:[{i:"n",l:"품목 수",min:1,max:8,s:1,u:"종"},{i:"pr",l:"마진",min:5,max:40,s:5,u:"%"}],
+ def:{n:4,pr:20},
+ out(v){const L=["머그컵","스티커","티셔츠","폰케이스","에코백","마우스패드","키링","포스터"];
+  return{items:[{h:"등록 상품",t:L.slice(0,v.n).join(" · "),m:`마진 ${v.pr}% · 주문 들어오면 제작`}],note:null,weekly:0,cnt:v.n};},
+ perf(v){const s=Math.max(1,Math.round(v.n*4.2*(1-(v.pr-5)/70)*gr()));
+  return{main:["판매",s,"건"],q:["별점",(4.6-(v.pr-5)/90).toFixed(1)],rev:Math.round(s*16000*v.pr/100),ok:1,
+   note:v.pr>30?"마진을 올리니 덜 팔려요":"스티커가 제일 잘 나가요"};}},
+
+{id:"tb",n:"텀블벅",k:"real",g:"fund",bgc:"pinkL",dot:"#FF8FAA",agent:"펀딩 매니저",role:"후원 프로젝트 담당",mood:1,
+ rule:"크라우드펀딩은 창작물에 AI가 얼마나 쓰였는지 후원자에게 알려야 해요.",
+ inp:[["대표작","굿즈·책 시안"],["프로젝트 글","목표·리워드 자동 초안"]],
+ d:[{i:"goal",l:"목표액",min:30,max:300,s:30,u:"만원"},{i:"rw",l:"리워드",min:2,max:8,s:1,u:"종"},{i:"tell",l:"AI 사용 고지",min:0,max:1,s:1}],
+ def:{goal:60,rw:4,tell:1},
+ rwarn(v){return v.tell?null:"AI 사용 고지를 끄면 프로젝트가 반려될 수 있어요. 고지를 켜요";},
+ out(v){return{items:[{h:"프로젝트",t:`목표 ${v.goal}만원 · 리워드 ${v.rw}종`,m:`${v.tell?"AI 사용 고지 포함":"AI 고지 없음"} · 30일`}],
+   note:v.tell?{c:"pass",x:"후원자에게 창작 과정을 투명하게 밝혔어요"}:{c:"warn",x:"AI 사용 고지가 빠졌어요. 심사에서 막힐 수 있어요"},
+   weekly:0,cnt:v.rw,block:!v.tell};},
+ perf(v){const back=v.tell?Math.round(v.goal*0.9*(1+v.rw*0.05)*gr()):0,rate=v.tell?Math.min(160,Math.round(back/v.goal*100)):0;
+  return{main:["후원",v.tell?back:"반려",v.tell?"만원":""],q:["달성률",v.tell?rate+"%":"—"],rev:v.tell?back*10000:0,ok:v.tell?1:0,
+   note:v.tell?(rate>=100?"목표를 넘겼어요. 리워드 배송 준비 시작":"조금 모자라요. 리워드를 손보면 좋아요"):"AI 고지가 없어 반려됐어요. 고지를 켜고 다시 올려요"};}},
+
+{id:"bk",n:"POD 출판",k:"real",g:"book",bgc:"butterL",dot:"#FFB94A",agent:"편집 담당",role:"책 만들기 담당",mood:0,
+ rule:"POD 출판은 AI 사용 여부를 등록 정보에 고지하도록 안내해요.",
+ inp:[["원고","4컷 3편 + 제작기"],["표지","1종"]],
+ d:[{i:"pg",l:"쪽수",min:40,max:200,s:20,u:"쪽"},{i:"sz",l:"판형",min:0,max:2,s:1}],
+ def:{pg:80,sz:1},
+ out(v){const S=["A5","B5","A4"][v.sz];
+  return{items:[{h:"책 사양",t:`${S} · ${v.pg}쪽 · 컬러`,m:`예상 정가 ${N(9000+v.pg*90)}원 · ISBN 나옴`},
+  {h:"실물",t:"주문 들어오면 인쇄해서 배송",m:"진짜 종이책을 받아볼 수 있어요"}],note:null,weekly:0,cnt:1};},
+ perf(v){const s=Math.round(9*gr());return{main:["판매",s,"부"],q:["ISBN","발급됨"],rev:Math.round(s*(9000+v.pg*90)*0.15),ok:1,
+  note:"대부분 아는 사람이 샀어요. 실물 책을 손에 쥐는 게 목적이에요"};}},
+
+{id:"ex",n:"전시회",k:"virt",g:"frame",bgc:"lilacL",dot:"#A187E2",agent:"큐레이터",role:"전시 구성 담당",mood:1,
+ rule:"가상 전시라도 작가 노트에 AI 사용 범위를 적어 두면 좋아요.",
+ inp:[["출품작","고른 이미지"],["작가 노트","초안 자동 작성"]],
+ d:[{i:"n",l:"몇 점",min:4,max:24,s:2,u:"점"},{i:"sp",l:"공간",min:0,max:2,s:1}],
+ def:{n:12,sp:1},
+ out(v){const S=["작은 카페","중간 갤러리","큰 전시장"][v.sp];
+  return{items:[{h:"전시 구성",t:`${S} · ${v.n}점 배치`,m:"동선과 배치도 자동 생성"},
+  {h:"가상 관람평",t:"\"픽셀인데 표정이 읽히는 게 신기해요\"",m:"AI 관람객 3명의 반응"}],
+  note:{c:"man",x:"진짜로 하긴 어려우니 가상으로 경험만 해봐요"},weekly:0,cnt:0};},
+ perf(v){return{main:["가상 관람",Math.round(v.n*14*gr()),"명"],q:["좋았다","72%"],rev:0,ok:1,virt:1,
+  note:"표정이 다양하다는 얘기가 많았어요"};}},
+
+{id:"pb",n:"출판사 미팅",k:"virt",g:"case",bgc:"lilacL",dot:"#A187E2",agent:"매니저",role:"협상 상대역",mood:3,
+ rule:"미팅에선 어디까지 AI를 썼는지 솔직히 밝히는 게 신뢰를 줘요.",
+ inp:[["포트폴리오","전체 작업물"],["성과","조회·저장·판매"]],
+ d:[{i:"agg",l:"들이대는 정도",min:0,max:4,s:1}],
+ def:{agg:2},
+ out(v){const R=["\"조금 더 쌓이면 다시 봅시다\"","\"연재 분량이 더 필요해요\"","\"4컷 30편이면 검토해볼게요\"","\"IP 확장 계획을 보여주세요\"","\"조건이 과해요. 실적부터요\""];
+  return{items:[{h:"편집자 반응",t:R[v.agg],m:"AI 역할극 · 진짜 계약 아님"},
+  {h:"받은 말",t:"연재 분량과 캐릭터 일관성이 관건",m:"다음 기획에 반영"}],
+  note:{c:"man",x:"가상 미팅이에요. 질문에 답해보는 연습용"},weekly:0,cnt:0};},
+ perf(v){return{main:["가상 미팅",1,"회"],q:["다시 볼 조건","4컷 30편"],rev:0,ok:1,virt:1,
+  note:"연재 분량이 부족하다는 얘기를 들었어요"};}}
+];
+
+let CONCEPT=0,ART=0,SEL="ig",DEP=0,CYC=1,TAB=1,PREV=null,LAST=null;
+let ST={};CH.forEach(c=>ST[c.id]={on:["ig","yt","ogq","mp"].includes(c.id),ag:0,v:{...c.def}});
+
+function mood(){if(!ART)return 3;if(!DEP)return 0;return ogqReject(ST.ogq.v)?3:2;}
+function snap(){const s={money:0,m:{}};live().forEach(c=>{const p=c.perf(ST[c.id].v);s.money+=p.rev;if(typeof p.main[1]==="number")s.m[c.id]=p.main[1];});return s;}
+
+function front(){
+  $("front").innerHTML=`
+  <div class="fs"><div class="k">첫 번째</div><div class="t">컨셉 고르기</div>
+    <div class="d">에이전트가 세 가지를 내면 내가 고릅니다.</div>
+    <div class="mini">${CN.map((c,i)=>`<button data-c="${i}" aria-pressed="${i===CONCEPT}">${c}</button>`).join("")}</div>
+    <div class="m">고른 것 — ${CN[CONCEPT]}</div></div>
+  <div class="fs ${ART?"":"need"}"><div class="k">두 번째</div><div class="t">내 그림 올리기</div>
+    <div class="d">${ART?"내 그림을 바탕으로 표정 12개, 포즈 4개로 늘렸어요.":"내가 직접 그린 그림이 없으면 여기서 멈춥니다."}</div>
+    ${ART?'<div class="m">그림 16종 준비됨</div>':'<div class="mini"><button id="up">내 그림 올리기</button></div><div class="m">그림이 필요해요</div>'}</div>
+  <div class="fs"><div class="k">세 번째</div><div class="t">규격 맞추기</div>
+    <div class="d">${ART?"채널들이 가져다 쓸 수 있게 크기와 색을 통일했어요.":"그림이 준비되면 알아서 합니다."}</div>
+    <div class="m">${ART?"3가지 크기 · 투명 배경":"기다리는 중"}</div></div>`;
+  $("front").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{CONCEPT=+b.dataset.c;render()});
+  const u=$("up");if(u)u.onclick=()=>{ART=1;render()};
+}
+function grid(){
+  $("grid").innerHTML=CH.map(c=>{const s=ST[c.id];
+    return `<div class="ch ${s.on?"":"off"} ${SEL===c.id?"sel":""}" data-id="${c.id}">
+      <div class="cap" style="background:var(--${c.bgc})">${glyph(G[c.g],c.dot)}</div>
+      <div class="nm">${c.n}</div><span class="kd ${c.k}">${c.k==="real"?"진짜로 올림":"가상 체험"}</span>
+      <div class="who2 ${s.ag?"on":""}">${s.ag?fairy(c.dot,17):""}${s.ag?"자동":"아직 수동"}</div>
+      <button class="sw ${s.on?"on":""}" data-sw="${c.id}">${s.on?"켜짐":"꺼짐"}</button></div>`;}).join("");
+  $("grid").querySelectorAll(".ch").forEach(e=>e.onclick=ev=>{if(ev.target.dataset.sw)return;SEL=e.dataset.id;render()});
+  $("grid").querySelectorAll("[data-sw]").forEach(b=>b.onclick=()=>{ST[b.dataset.sw].on=!ST[b.dataset.sw].on;render()});
+}
+function fmt(d,v){
+  if(d.i==="tone")return TONE[v];
+  if(d.i==="hook")return ["아주 약","약","보통","셈","아주 셈"][v];
+  if(d.i==="trend")return ["안 따름","살짝","보통","적극","완전 유행"][v];
+  if(d.i==="topic")return ["자유","느슨","시리즈"][v];
+  if(d.i==="info")return ["감성","감성 우세","반반","정보 우세","정보"][v];
+  if(d.i==="sz")return ["A5","B5","A4"][v];
+  if(d.i==="sp")return ["작게","중간","크게"][v];
+  if(d.i==="res")return ["낮음","보통","높음"][v];
+  if(d.i==="move")return ["멈춤","조금","크게"][v];
+  if(d.i==="ani")return v?"있음":"없음";
+  if(d.i==="tell")return v?"고지 함":"안 함";
+  if(d.i==="agg")return ["아주 조심","조심","보통","적극","아주 적극"][v];
+  return v+(d.u||"");}
+function detail(){
+  const c=CH.find(x=>x.id===SEL),s=ST[c.id],o=c.out(s.v),rw=c.rwarn?c.rwarn(s.v):null;
+  $("dn").textContent="— "+c.n;
+  $("det").innerHTML=`
+  <div class="dc"><div class="cl">여기서 받아 와요</div>
+    ${c.inp.map(([a,b])=>`<div class="box"><b>${a}</b>${b}</div>`).join("")}
+    ${!ART?'<div class="note warn" style="margin-top:9px">아직 그림이 없어요. 1단계에서 올려 주세요</div>':""}</div>
+  <div class="dc"><div class="cl">담당 에이전트</div>
+    <div class="slot ${s.ag?"on":""}">${s.ag?fairy(c.dot,40)+`<div class="an">${c.agent}</div><div class="ar">${c.role}</div>`
+      :'<div class="em">아직 아무도 없어요.<br>배치하면 자동으로 올려 줍니다.</div>'}</div>
+    ${s.ag?c.d.map(d=>`<div class="dial"><div class="dl"><span>${d.l}</span><span class="dv">${fmt(d,s.v[d.i])}</span></div>
+      <input type="range" data-d="${d.i}" min="${d.min}" max="${d.max}" step="${d.s}" value="${s.v[d.i]}"></div>`).join("")
+      :'<button class="btn go" id="pl">에이전트 배치하기</button>'}</div>
+  <div class="dc"><div class="cl">이렇게 나와요</div>
+    <div class="note rule"><b>이 채널의 AI 생성물 규정</b> · ${c.rule}</div>
+    ${rw?`<div class="note warn">${rw}</div>`:""}
+    ${s.ag?'<div class="note man">자동이지만, 올리기 직전 학생 승인을 한 번 받아요</div>':'<div class="note man">아직 수동이에요. 직접 올려야 합니다</div>'}
+    ${o.note?`<div class="note ${o.note.c}">${o.note.x}</div>`:""}
+    ${o.items.map(it=>`<div class="prev"><div class="ph">${it.h}</div><div class="pt">${it.t}</div>
+      ${it.m?`<div class="pm">${it.m}</div>`:""}${it.tags?`<div class="tags">${it.tags}</div>`:""}</div>`).join("")}</div>`;
+  const p=$("pl");if(p)p.onclick=()=>{s.ag=1;render()};
+  $("det").querySelectorAll("[data-d]").forEach(r=>r.oninput=()=>{s.v[r.dataset.d]=+r.value;render()});
+}
+function live(){return CH.filter(c=>ST[c.id].on&&(ST[c.id].ag||c.k==="virt"));}
+
+function calendar(){
+  const days=["월","화","수","목","금","토","일"],slots=[[],[],[],[],[],[],[]];
+  CH.forEach(c=>{const s=ST[c.id];if(!s.on||!s.ag)return;const w=c.out(s.v).weekly;if(!w)return;
+    for(let d=0;d<7;d++){const cnt=Math.floor(w*(d+1)/7)-Math.floor(w*d/7);if(cnt>0)slots[d].push({c,cnt});}});
+  const any=slots.some(x=>x.length);
+  $("cal").innerHTML=any?`<div class="cal">`+days.map((dn,i)=>`<div class="day"><div class="dh">${dn}</div>${
+    slots[i].length?slots[i].map(o=>`<div class="cd" style="background:var(--${o.c.bgc})"><span class="cdot" style="background:${o.c.dot}"></span>${o.c.n.length>5?o.c.n.slice(0,4)+"…":o.c.n}${o.cnt>1?" ×"+o.cnt:""}</div>`).join(""):`<div class="empty">쉼</div>`
+  }</div>`).join("")+`</div>`
+   :`<div class="none" style="margin-top:9px">주 n회로 예약되는 자동 채널이 아직 없어요. 인스타·유튜브·틱톡 같은 채널에 에이전트를 배치해 보세요.</div>`;
+}
+
+function perf(){
+  if(!DEP){$("perf").innerHTML='<div class="none">아직 안 올렸어요. 4단계를 실행하면 반응이 쌓입니다.</div>';return}
+  const L=live();let money=0;
+  const dl=(id,cur)=>{if(!PREV||PREV.m[id]==null)return"";const pv=PREV.m[id],d=cur-pv,pct=pv?Math.round(d/pv*100):0,
+    cls=d>0?"up":d<0?"down":"same",ar=d>0?"↑":d<0?"↓":"–";
+    return `<div class="dlt ${cls}">지난 사이클 ${ar} ${Math.abs(pct)}%</div>`;};
+  const cards=L.map(c=>{const p=c.perf(ST[c.id].v);money+=p.rev;const num=typeof p.main[1]==="number";
+    return `<div class="pc" style="box-shadow:4px 4px 0 var(--${c.bgc})">
+      <div class="pn">${c.n}</div><div class="pk">${p.main[0]}</div>
+      <div class="pv"><b>${num?N(p.main[1]):p.main[1]}</b><i>${p.main[2]||""}</i>
+      ${num?`<span style="margin-left:auto">${bar(series(p.main[1],7),p.ok?c.dot:"#F26B68")}</span>`:""}</div>
+      ${num?dl(c.id,p.main[1]):""}
+      <div class="q"><span>${p.q[0]}</span><em style="color:${p.ok?c.dot:"#F26B68"}">${p.q[1]}</em></div>
+      <div class="rev">${p.note}</div></div>`;}).join("");
+  const rj=ogqReject(ST.ogq.v),pad=ST.ogq.v.pad;
+  const tl=`<div class="tl">
+    <div><span class="w">1주</span>OGQ마켓·카카오에 <b>처음 제출</b></div>
+    <div class="no"><span class="w">2주</span><b>OGQ 반려</b> — 여백이 부족했어요</div>
+    ${rj?`<div class="no"><span class="w">지금</span><b>또 막혔어요</b> — ${rj.r}. ${rj.fix} 필요</div>`
+      :`<div><span class="w">3주</span>지적받은 곳을 고쳐서 <b>다시 제출</b> (여백 ${pad}px)</div>
+        <div class="ok"><span class="w">4주</span>OGQ <b>통과</b></div>`}
+    <div class="ok"><span class="w">3주</span>라인 스티커 <b>승인</b> (규격만 맞추면 통과)</div>
+    <div class="${rj?"no":"ok"}"><span class="w">진행</span>카카오 이모티콘 <b>제안 심사 대기</b> — 승인율은 낮아도 도전 중</div></div>`;
+  const tips=[];
+  if(ST.ig.v.tone>=2)tips.push("인스타 말투를 <b>담백</b>하게 낮추면 저장이 늘어요");
+  if(ST.yt.v.hook>=3)tips.push("유튜브 낚시 강도를 <b>보통</b>으로 낮추면 끝까지 봐요");
+  if(ST.tt.on&&ST.tt.v.trend>=4)tips.push("틱톡은 <b>무료 음원</b>으로 바꿔야 저작권 문제가 없어요");
+  if(ST.tb.on&&!ST.tb.v.tell)tips.push("텀블벅은 <b>AI 사용 고지</b>를 켜야 프로젝트가 통과해요");
+  if(rj)tips.push(`OGQ는 <b>${rj.fix}</b> 하면 통과해요`);
+  tips.push("컨셉을 <b>상사 눈치냥</b>으로 — 공감형이 위로형보다 저장이 많았어요");
+  const mdl=PREV?money-PREV.money:null;
+  $("perf").innerHTML=`
+  ${PREV?"":'<div class="note rule" style="margin-bottom:12px">이번이 첫 기록이라 비교할 지난 사이클이 없어요. 고치고 다시 올리면 카드마다 ↑↓로 변화를 보여줘요</div>'}
+  <div class="pgrid">${cards}</div>
+  <div class="money"><span class="ml">지금까지 번 돈 (참고용 · 점수에 안 들어갑니다)</span>
+    <span class="mv">${N(money)}원${mdl!==null?` <em style="color:var(--${mdl>=0?"mint":"red"})">지난 사이클 ${mdl>=0?"↑":"↓"} ${N(Math.abs(mdl))}원</em>`:""}</span></div>
+  <div style="margin-top:18px"><div class="cl">심사는 이렇게 흘러갔어요 (떨어지고 → 고치고 → 다시)</div>${tl}</div>
+  <div class="ins"><div class="it">다음엔 이렇게 해볼까요</div>
+    <ul>${tips.map(t=>`<li>${t}</li>`).join("")}</ul>
+    <button class="btn ok" id="apply">이대로 고치고 ${CYC+1}번째 시작</button></div>`;
+  $("apply").onclick=()=>{ST.ig.v.tone=1;ST.yt.v.hook=2;ST.ogq.v.pad=8;if(ST.ogq.v.res<1)ST.ogq.v.res=1;if(ST.ogq.v.set>=40)ST.ogq.v.set=32;ST.tt.v.trend=Math.min(ST.tt.v.trend,3);ST.tb.v.tell=1;CONCEPT=1;CYC++;DEP=0;
+    $("log").innerHTML=`<div class="hd">${CYC}번째 사이클 — 지적받은 곳을 고쳤어요. 다시 올려 보세요</div>`;
+    render();window.scrollTo({top:0,behavior:"smooth"});};
+}
+
+function folio(){
+  const L=live(),pad=ST.ogq.v.pad,rj=ogqReject(ST.ogq.v),pass=!rj;let total=0,money=0;
+  L.forEach(c=>{total+=c.out(ST[c.id].v).cnt;money+=c.perf(ST[c.id].v).rev});
+  if(!DEP){$("folio").innerHTML='<div class="body"><div class="none">올리고 반응이 모이면 포트폴리오가 저절로 만들어져요.</div></div>';return}
+  const works=L.filter(c=>c.k==="real").map(c=>{const p=c.perf(ST[c.id].v),num=typeof p.main[1]==="number";
+    return `<div class="wk"><div class="th" style="background:var(--${c.bgc})">${cat(c.mood,46)}</div>
+      <div class="wn">${c.n}</div><div class="wc">${CN[CONCEPT]} · ${c.out(ST[c.id].v).cnt}종</div>
+      <div class="wm">${p.main[0]} ${num?N(p.main[1]):p.main[1]}${p.main[2]||""} · ${p.q[0]} ${p.q[1]}</div></div>`;}).join("");
+  $("folio").innerHTML=`
+  <div class="sec"><div class="st">내 작업물</div><div class="body">
+    <div class="pfh"><div class="nm"><b>야근냥 — ${CN[CONCEPT]}</b><span>내가 만든 캐릭터 · ${CYC}번째 사이클 · 원화 직접 작업</span></div>
+      <div class="pfb"><span class="pb t">채널 ${L.filter(c=>c.k==="real").length}곳</span><span class="pb t">작업물 ${total}종</span>
+      <span class="pb g">라인 승인</span>${pass?'<span class="pb g">OGQ 승인</span>':'<span class="pb">OGQ 재도전 중</span>'}
+      <span class="pb y">ISBN 발급</span>${ST.tb.on&&ST.tb.v.tell?'<span class="pb y">텀블벅 진행</span>':''}</div></div>
+    <div class="wg">${works}</div>
+    <div class="share">공유 링크 — portfolio.ync.ac.kr/s/야근냥-${CYC}</div></div></div>
+  <div class="sec"><div class="st">떨어지고 다시 한 이야기</div><div class="body">
+    <div class="tl"><div class="no"><span class="w">2주</span>OGQ마켓에서 <b>떨어졌어요</b> — 여백 부족</div>
+      <div><span class="w">3주</span>이유를 찾아서 전부 다시 다듬었어요 (여백 ${pad}px · 해상도 ${["낮음","보통","높음"][ST.ogq.v.res]})</div>
+      ${pass?'<div class="ok"><span class="w">4주</span><b>두 번째에 통과</b></div>':`<div class="no"><span class="w">지금</span>아직 막혀 있어요 — ${rj.r}</div>`}</div>
+    <div style="font-size:13px;color:var(--ink2);margin-top:13px">한 번에 붙은 기록보다 <b style="color:var(--ink)">막혔을 때 어떻게 했는지</b>가 더 궁금한 정보예요. 포트폴리오엔 "만들었습니다"가 아니라 "올렸고 이런 반응이 있었습니다"가 남아요.</div>
+    <div class="money"><span class="ml">지금까지 번 돈 (참고용 · 점수에 안 들어갑니다)</span><span class="mv">${N(money)}원</span></div>
+  </div></div>`;
+}
+
+function render(){
+  $("console").hidden=TAB!==1;$("folio").hidden=TAB!==2;
+  $("tb1").setAttribute("aria-selected",TAB===1);$("tb2").setAttribute("aria-selected",TAB===2);
+  $("avat").innerHTML=cat(mood(),46);
+  if(TAB===1){front();grid();detail();calendar();perf()}else folio();
+  let a=0,t=0,w=0;
+  CH.forEach(c=>{const s=ST[c.id];if(!s.on)return;a++;const o=c.out(s.v);t+=o.cnt;if(s.ag)w+=o.weekly});
+  $("s0").textContent=CYC;$("s1").textContent=a;$("s2").textContent=ART?t:0;$("s3").textContent=ART?w:0;
+}
+$("tb1").onclick=()=>{TAB=1;render()};
+$("tb2").onclick=()=>{TAB=2;render()};
+$("run").onclick=()=>{
+  const L=$("log");L.innerHTML="";
+  const add=(t,c)=>{L.innerHTML+=`<div class="${c||""}">${t}</div>`;L.scrollTop=L.scrollHeight};
+  if(!ART){add("잠깐 — 내 그림이 아직 없어요. 1단계부터 해주세요","hd");return}
+  const on=CH.filter(c=>ST[c.id].on);
+  if(!on.length){add("잠깐 — 켜둔 채널이 하나도 없어요","hd");return}
+  add(`${CYC}번째 사이클 · 컨셉 "${CN[CONCEPT]}"으로 시작합니다`);
+  let i=0;
+  const tick=setInterval(()=>{
+    if(i>=on.length){add(`다 올렸어요 — ${on.length}곳. 이제 반응을 모읍니다`,"ok");PREV=LAST;LAST=snap();DEP=1;render();clearInterval(tick);return}
+    const c=on[i],s=ST[c.id],o=c.out(s.v);i++;
+    if(o.block){add(`${c.n} — 규격·규정이 안 맞아 보류했어요`,"hd");return}
+    if(c.k==="virt"){add(`${c.n} — 가상으로 체험 완료`,"vt");return}
+    if(!s.ag){add(`${c.n} — 담당이 없어서 직접 올려야 해요`,"hd");return}
+    add(`${c.n} — 학생 승인 받고 올렸어요 · ${o.cnt}종${o.weekly?` · 주 ${o.weekly}번 예약`:""}`,"ok");
+  },300);
+};
+render();
+</script>

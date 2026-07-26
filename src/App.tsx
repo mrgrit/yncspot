@@ -12,6 +12,8 @@ import { CompanyLayout } from "@/components/layout/CompanyLayout";
 import Landing from "@/pages/public/Landing";
 import Login from "@/pages/public/Login";
 import NotFound from "@/pages/public/NotFound";
+import ExperienceIndex from "@/pages/experience/ExperienceIndex";
+import ExperiencePlayer from "@/pages/experience/ExperiencePlayer";
 
 import MyPage from "@/pages/youth/MyPage";
 import Portfolio from "@/pages/youth/Portfolio";
@@ -51,6 +53,10 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<RootIndex />} />
                 <Route path="/login" element={<Login />} />
+
+                {/* 수업 체험하기 (공개) */}
+                <Route path="/experience" element={<ExperienceIndex />} />
+                <Route path="/experience/:id" element={<ExperiencePlayer />} />
 
                 {/* 참여자 */}
                 <Route

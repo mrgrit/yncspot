@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI물류 팀캡틴 · 돌발상황 대응 훈련 시뮬레이터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --slab:#E4E5E2;
+  --paint:#F7F7F5;
+  --card:#FFFFFF;
+  --ink:#1B1D1C;
+  --steel:#5C636A;
+  --line:#C9CBC7;
+  --hazard:#E8A317;
+  --alert:#C1382A;
+  --go:#2C7A57;
+  --ai:#2F5DAE;
+  --sans:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --mono:ui-monospace,'SFMono-Regular','JetBrains Mono',Consolas,'D2Coding',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--slab);font-family:var(--sans);color:var(--ink);
+  line-height:1.6;-webkit-font-smoothing:antialiased;
+  padding:24px 16px 64px;
+}
+.wrap{max-width:1060px;margin:0 auto}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--steel);
+}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* ---------- 시작 화면 ---------- */
+.intro{background:var(--paint);border:1px solid var(--line);padding:40px 36px}
+.intro h1{
+  font-size:clamp(26px,4.4vw,40px);font-weight:700;line-height:1.22;
+  letter-spacing:-.02em;margin:10px 0 14px;max-width:22ch;
+}
+.intro p.lede{color:var(--steel);max-width:58ch;font-size:15px}
+.rule{height:1px;background:var(--line);margin:32px 0 26px}
+.fieldlabel{font-size:13px;font-weight:600;margin-bottom:10px;display:block}
+.hint{font-size:12.5px;color:var(--steel);margin-bottom:14px}
+
+.cats{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.cats button{
+  padding:6px 13px;font-size:12.5px;color:var(--steel);
+  border:1px solid var(--line);background:var(--card);
+}
+.cats button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+
+.scn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(236px,1fr));gap:12px}
+.scn{
+  background:var(--card);border:1px solid var(--line);padding:15px 16px 13px;
+  text-align:left;display:block;width:100%;transition:border-color .12s;position:relative;
+}
+.scn:hover{border-color:var(--steel)}
+.scn[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.scn .code{font-family:var(--mono);font-size:11px;color:var(--steel);letter-spacing:.08em}
+.scn .nm{font-size:15px;font-weight:600;margin:6px 0 4px;letter-spacing:-.01em}
+.scn .ds{font-size:12.5px;color:var(--steel);line-height:1.5}
+.scn .tag{
+  display:inline-block;margin-top:10px;font-size:11px;font-family:var(--mono);
+  padding:2px 7px;border:1px solid var(--line);color:var(--steel);
+}
+
+.seg{display:flex;border:1px solid var(--line);width:fit-content;background:var(--card);flex-wrap:wrap}
+.seg button{padding:9px 18px;font-size:13px;color:var(--steel);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff;font-weight:600}
+.leveldesc{font-size:12.5px;color:var(--steel);margin-top:10px;min-height:20px}
+
+.roles{display:flex;gap:8px;flex-wrap:wrap}
+.role{
+  flex:1;min-width:150px;text-align:left;background:var(--card);border:1px solid var(--line);
+  padding:11px 13px;transition:border-color .12s;
+}
+.role[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.role .rn{font-size:13.5px;font-weight:600}
+.role .rd{font-size:12px;color:var(--steel);margin-top:2px}
+
+.start{
+  margin-top:30px;background:var(--ink);color:#fff;padding:15px 34px;
+  font-size:15px;font-weight:600;letter-spacing:-.01em;
+}
+.start:hover{background:#000}
+
+/* ---------- 훈련 화면 ---------- */
+.hidden{display:none !important}
+.topbar{
+  background:var(--ink);color:#fff;display:flex;align-items:center;
+  justify-content:space-between;padding:12px 18px;gap:16px;flex-wrap:wrap;
+}
+.topbar .who{font-size:13px}
+.topbar .who b{font-weight:600}
+.topbar .who span{color:#9AA0A6;font-family:var(--mono);font-size:11.5px;display:block;letter-spacing:.06em}
+.clock{display:flex;align-items:baseline;gap:10px}
+.clock .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:#9AA0A6}
+.clock .val{font-family:var(--mono);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.clock .val.warn{color:var(--hazard)}
+.clock .val.crit{color:#FF7A6B}
+.speed{display:flex;gap:0;border:1px solid #3A3D3F}
+.speed button{padding:5px 11px;font-family:var(--mono);font-size:11.5px;color:#9AA0A6;border-right:1px solid #3A3D3F}
+.speed button:last-child{border-right:none}
+.speed button[aria-pressed="true"]{background:#fff;color:var(--ink);font-weight:600}
+
+.board{display:grid;grid-template-columns:1.15fr .85fr;gap:1px;background:var(--line);border:1px solid var(--line);border-top:none}
+@media (max-width:760px){.board{grid-template-columns:1fr}}
+.pane{background:var(--paint);padding:16px 18px 18px}
+.pane h2{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--steel);margin-bottom:12px}
+
+.zones{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.zone{
+  background:var(--card);border:1px solid var(--line);padding:10px 11px 11px;
+  position:relative;transition:background .3s,border-color .3s;
+}
+.zone .zn{font-family:var(--mono);font-size:10.5px;color:var(--steel);letter-spacing:.06em}
+.zone .zv{font-family:var(--mono);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.zone .zs{font-size:11px;color:var(--steel);margin-top:1px}
+.zone.busy{background:#FDF6E4;border-color:#E2C77E}
+.zone.busy .zs{color:#96690A}
+.zone.down{background:#FBEDEB;border-color:#E0A79F}
+.zone.down .zs{color:var(--alert)}
+.zone.down .zv{color:var(--alert)}
+.zone.off{background:#EEEFEC;border-color:var(--line);opacity:.72}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}.zones{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border:1px solid var(--line);padding:10px 11px 11px}
+.stat .sl{font-size:11px;color:var(--steel)}
+.stat .sv{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.3}
+.stat .sv.bad{color:var(--alert)}
+.stat .sv.good{color:var(--go)}
+
+.log{
+  background:var(--card);border:1px solid var(--line);height:352px;overflow-y:auto;
+  padding:10px 12px;font-size:12.5px;
+}
+@media (max-width:760px){.log{height:220px}}
+.log .row{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid #EFEFEC;align-items:baseline}
+.log .row:last-child{border-bottom:none}
+.log .tm{font-family:var(--mono);font-size:11px;color:var(--steel);flex-shrink:0}
+.log .row.hi .tx{color:var(--alert);font-weight:600}
+.log .row.act .tx{color:var(--go);font-weight:600}
+.log .row.aim .tx{color:var(--ai);font-weight:600}
+
+/* ---------- 알람 / 결정 ---------- */
+.alarm{border:1px solid var(--line);border-top:none;background:var(--card)}
+.stripe{
+  height:7px;
+  background:repeating-linear-gradient(45deg,var(--hazard) 0 14px,var(--ink) 14px 28px);
+}
+.alarm-body{padding:16px 18px 18px}
+.alarm-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.alarm-head .ttl{font-size:17px;font-weight:700;color:var(--alert);letter-spacing:-.01em}
+.alarm-head .el{font-family:var(--mono);font-size:12px;color:var(--steel);margin-left:auto}
+.alarm-body .dtl{font-size:13.5px;color:var(--steel);margin-bottom:12px}
+.aisum{
+  background:#EEF3FB;border:1px solid #C6D6EF;padding:10px 13px;margin-bottom:13px;font-size:13px;
+}
+.aisum .ah{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--ai);font-weight:600;margin-bottom:3px;text-transform:uppercase}
+.aisum .verify{color:var(--steel);font-size:12px;margin-top:5px}
+.ack{background:var(--alert);color:#fff;padding:11px 26px;font-size:14px;font-weight:600}
+.ack:hover{background:#A72C20}
+.optlabel{font-size:12px;color:var(--steel);margin-bottom:9px}
+.opts{display:grid;gap:7px}
+.opt{
+  border:1px solid var(--line);background:var(--paint);padding:12px 14px;text-align:left;
+  display:block;width:100%;transition:border-color .12s,background .12s;position:relative;
+}
+.opt:hover{border-color:var(--ink);background:#fff}
+.opt .ot{font-size:14px;font-weight:600}
+.opt .oi{font-size:12.5px;color:var(--steel);margin-top:3px;font-family:var(--mono)}
+.opt .rec{
+  position:absolute;top:11px;right:12px;font-size:10.5px;font-family:var(--mono);font-weight:600;
+  color:var(--ai);border:1px solid #C6D6EF;background:#EEF3FB;padding:1px 7px;letter-spacing:.04em;
+}
+.autobar{
+  display:flex;align-items:center;gap:12px;background:#FDF6E4;border:1px solid #E2C77E;
+  padding:10px 14px;font-size:13px;margin-bottom:9px;flex-wrap:wrap;
+}
+.autobar .cd{font-family:var(--mono);font-weight:600;color:#96690A}
+.autobar button{margin-left:auto;border:1px solid #96690A;color:#96690A;padding:5px 14px;font-size:12.5px;font-weight:600}
+
+/* ---------- 결과 ---------- */
+.aar{background:var(--paint);border:1px solid var(--line);padding:34px 32px}
+.aar h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:8px 0 6px}
+.aar .sub{color:var(--steel);font-size:14px;margin-bottom:26px}
+.verdict{display:inline-block;padding:5px 14px;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em}
+.verdict.ok{background:#E3F1EA;color:var(--go);border:1px solid #A9CDBB}
+.verdict.no{background:#FBEDEB;color:var(--alert);border:1px solid #E0A79F}
+.score{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-bottom:26px}
+.sc{background:var(--card);border:1px solid var(--line);padding:13px 14px}
+.sc .l{font-size:11.5px;color:var(--steel)}
+.sc .v{font-family:var(--mono);font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.coach{background:var(--card);border-left:4px solid var(--hazard);padding:16px 20px;margin-bottom:14px}
+.coach.aicoach{border-left-color:var(--ai)}
+.coach .ch{font-size:12px;font-weight:600;color:var(--steel);margin-bottom:6px}
+.coach p{font-size:14.5px;line-height:1.72}
+.coach p + p{margin-top:10px}
+.again{display:flex;gap:9px;margin-top:26px;flex-wrap:wrap}
+.again button{border:1px solid var(--ink);padding:12px 24px;font-size:14px;font-weight:600}
+.again button.solid{background:var(--ink);color:#fff}
+.foot{margin-top:26px;font-size:12px;color:var(--steel);text-align:center;line-height:1.7}
+
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ 시작 ============ -->
+<section id="s-intro">
+  <div class="intro">
+    <p class="eyebrow">AI물류 팀캡틴 · 물류센터 현장관리자 훈련</p>
+    <h1>돌발상황 대응 훈련 시뮬레이터</h1>
+    <p class="lede">정상 운영을 지켜보다 예고 없이 문제가 터집니다. 팀캡틴은 제한된 시간 안에 대응을 선택하고, 그 선택이 만든 결과를 숫자로 확인합니다. 정답은 알려주지 않습니다. 무엇을 지키려다 무엇을 포기했는지 사후에 되짚습니다.</p>
+
+    <div class="rule"></div>
+
+    <label class="fieldlabel">1. 오늘의 상황</label>
+    <p class="hint">돌발상황 유형을 하나 고릅니다. 실제 운영에서는 학습자에게 알려주지 않습니다. <b>총 <span id="scnTotal">0</span>종</b></p>
+    <div class="cats" id="catRow"></div>
+    <div class="scn-grid" id="scnGrid"></div>
+
+    <div style="height:26px"></div>
+
+    <label class="fieldlabel">2. 내 역할 (2~3인 1조)</label>
+    <p class="hint">조별로 역할을 나눠 협업·소통도 함께 훈련합니다. 고른 역할이 브리핑 시점에 표시됩니다.</p>
+    <div class="roles" id="roleRow"></div>
+
+    <div style="height:26px"></div>
+
+    <label class="fieldlabel">3. 인공지능 개입 수준</label>
+    <p class="hint">같은 상황을 수준별로 반복하며, 판단을 얼마나 사람이 쥐는지 조절합니다.</p>
+    <div class="seg" id="lvlSeg">
+      <button data-l="1" aria-pressed="false">L1 알림만</button>
+      <button data-l="2" aria-pressed="true">L2 요약·제안</button>
+      <button data-l="3" aria-pressed="false">L3 자동 조치</button>
+    </div>
+    <p class="leveldesc" id="lvlDesc"></p>
+
+    <button class="start" id="btnStart">훈련 시작</button>
+  </div>
+  <p class="foot">영남이공대학교 · 전공별 X+AI 교육 접목 시연 자료<br>실제 물류 데이터가 아닌 모의 수치로 동작합니다. 인공지능 제안에는 일부러 잘못된 것이 섞여 있습니다.</p>
+</section>
+
+<!-- ============ 훈련 ============ -->
+<section id="s-run" class="hidden">
+  <div class="topbar">
+    <div class="who">
+      <b id="runTitle">대구 남구 FC · 주간 2교대</b>
+      <span id="runMeta">CV-03 · L2</span>
+    </div>
+    <div class="clock">
+      <div><div class="lbl">경과</div><div class="val mono" id="elapsed" style="font-size:20px">00:00</div></div>
+      <div style="margin-left:14px"><div class="lbl">Cut-off</div><div class="val mono" id="cutoff">60:00</div></div>
+    </div>
+    <div class="speed">
+      <button data-sp="1" aria-pressed="true">1x</button>
+      <button data-sp="3" aria-pressed="false">3x</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="pane">
+      <h2>구역 현황</h2>
+      <div class="zones" id="zones"></div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="pane">
+      <h2>운영 기록</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="alarm hidden" id="alarm">
+    <div class="stripe"></div>
+    <div class="alarm-body" id="alarmBody"></div>
+  </div>
+</section>
+
+<!-- ============ 결과 ============ -->
+<section id="s-aar" class="hidden">
+  <div class="aar">
+    <p class="eyebrow">사후 검토 · After Action Review</p>
+    <h2 id="aarTitle">훈련 결과</h2>
+    <p class="sub" id="aarSub"></p>
+    <div class="score" id="aarScore"></div>
+    <div class="coach">
+      <div class="ch">코칭</div>
+      <div id="aarCoach"></div>
+    </div>
+    <div class="coach aicoach hidden" id="aarAiBox">
+      <div class="ch">인공지능을 어떻게 썼는가</div>
+      <div id="aarAi"></div>
+    </div>
+    <div class="again">
+      <button class="solid" id="btnRetry">같은 상황 다시</button>
+      <button id="btnHome">다른 상황 고르기</button>
+    </div>
+  </div>
+  <p class="foot">실제 훈련에서는 이 리포트가 학습자별로 누적되어<br>반복되는 판단 취약점을 추적하고 YNCSPOT 포트폴리오로 축적됩니다.</p>
+</section>
+
+</div>
+
+<script>
+/* ================= 카테고리 ================= */
+const CAT = {
+  all:'전체', equip:'설비 고장', inv:'재고·데이터', hr:'인력·안전',
+  vol:'물량', sys:'전산·보안', env:'환경·외부'
+};
+
+/* ================= 역할 ================= */
+const ROLES = [
+  {id:'lead', nm:'의사결정(총괄)', rd:'상황을 종합해 최종 대응을 지시합니다.'},
+  {id:'field', nm:'현장 확인', rd:'직접 이동해 설비·재고 실물을 확인합니다.'},
+  {id:'metric', nm:'지표 관리', rd:'적체·마감·안전 지표를 감시하고 보고합니다.'}
+];
+
+/* ================= 돌발상황 17종 ================= */
+/* opt: {t 조치, i 예상영향, cap 처리능력배수, uph 인당배수, risk 연쇄확률, riskZone, riskMsg, safety 안전위반확률, unfilled 미출고, recoverIn 복구초} */
+/* aiRec: 인공지능 추천 옵션 index, aiTrap: 추천이 함정(따르면 나쁨)이면 true, aiSummary: AI 상황요약·제안 */
+const SCEN = {
+  /* ---------- 설비 고장 ---------- */
+  CV03:{
+    code:'CV-03', cat:'equip', name:'3번 라인 컨베이어 정지', kind:'설비 고장',
+    desc:'구동 모터 과부하로 출고 컨베이어 한 개 라인이 멈춥니다.',
+    fireAt:420, zone:'CV',
+    alarmTitle:'3번 라인 정지', alarmDetail:'구동 모터 과부하 감지 · 정비팀 도착 예상 8분',
+    aiRec:0, aiTrap:true,
+    aiSummary:'출고 지연을 최소화하려면 인접 4번 라인으로 즉시 우회하는 것을 권장합니다. 예상 지연 7분.',
+    opts:[
+      {t:'4번 라인으로 우회', i:'지연 +7분 · 4번 과부하 위험 있음', cap:0.88, uph:0.97, risk:0.55, riskZone:'CV', riskMsg:'4번 라인 과부하 경고 발생 — 우회 물량 감당 못 함'},
+      {t:'인원 3명 수동 이송 전환', i:'피킹 속도 12% 감소 · 안전 위험 상승', cap:0.93, uph:0.88, safety:0.45, riskMsg:'수동 이송 구간 안전 규정 위반 적발'},
+      {t:'정비 완료까지 대기', i:'복구 15분 소요 · 마감 위험 큼', cap:0.70, uph:1.0, recoverIn:900}
+    ],
+    coach:[
+      ['우회 자체는 타당한 판단입니다. 다만 우회 대상인 4번 라인의 잔여 여유율을 확인하지 않았습니다.','작업 표준 CV-07 2항은 우회 전 대상 라인 부하율 확인을 요구합니다. 한 라인을 살리려다 두 라인을 잃는 연쇄 실패가 현장에서 가장 흔합니다.'],
+      ['처리량을 지키는 선택이었지만, 수동 이송은 안전 위험을 동반합니다.','인력을 투입할 때는 이송 동선과 지게차 통행로가 겹치는지를 함께 지시해야 합니다. 생산성 지표만 보면 이 선택은 좋아 보이고, 그래서 위험합니다.'],
+      ['가장 안전하지만 가장 비쌌습니다.','설비 복구를 기다리는 동안 적체는 계속 쌓입니다. 대기가 정답인 상황도 있으나, 그 판단은 마감까지 남은 시간을 계산한 뒤에 내려야 합니다.']
+    ]
+  },
+  SRT05:{
+    code:'SRT-05', cat:'equip', name:'자동분류기 오분류 다발', kind:'설비 고장',
+    desc:'소터 바코드 스캐너가 오작동해 목적지 오분류가 급증합니다.',
+    fireAt:360, zone:'SRT',
+    alarmTitle:'소터 오분류 급증', alarmDetail:'오분류율 3% → 18% · 반송 슈트 적체 시작',
+    aiRec:1, aiTrap:false,
+    aiSummary:'스캐너 광학부 오염 가능성이 높습니다. 소터를 감속(50%)해 오분류를 억제하며 청소·재보정을 병행할 것을 권장합니다.',
+    opts:[
+      {t:'소터 그대로 두고 반송분 수기 재분류', i:'오분류 계속 발생 · 인력 소모 큼', cap:0.82, uph:0.80, risk:0.4, riskZone:'PACK', riskMsg:'오분류품이 포장까지 흘러가 오출고 발생'},
+      {t:'소터 50% 감속 + 재보정', i:'처리량 감소 · 오분류 억제', cap:0.78, uph:1.0, recoverIn:600},
+      {t:'소터 전면 정지 후 전량 수분류', i:'처리 급감 · 오분류 0', cap:0.5, uph:0.6}
+    ],
+    coach:[
+      ['원인을 놔둔 채 증상만 치웠습니다.','오분류가 계속 생기는 상태에서 반송분만 처리하면 밑 빠진 독입니다. 스캐너 오작동이라는 원인부터 끊어야 합니다.'],
+      ['원인(광학부)과 흐름(감속)을 동시에 잡은 균형 잡힌 판단입니다.','감속은 처리량을 깎지만, 오분류가 포장·출고로 번지는 것을 막아 2차 비용을 줄입니다. 재보정 완료 후 정상 속도로 복귀합니다.'],
+      ['오분류는 확실히 막았지만 대가가 큽니다.','전량 수분류는 소량·고가 상품엔 맞지만, 대량 물량에선 마감을 놓치기 쉽습니다. 상품 특성과 잔여 시간을 함께 봐야 합니다.']
+    ]
+  },
+  AGV02:{
+    code:'AGV-02', cat:'equip', name:'AGV 군집 정지', kind:'설비 고장',
+    desc:'무인운반차(AGV) 통신이 두절되어 특정 통로가 정체됩니다.',
+    fireAt:480, zone:'B',
+    alarmTitle:'AGV 통신 두절', alarmDetail:'B존 통로 AGV 6대 정지 · 후속 차량 대기 정체',
+    aiRec:2, aiTrap:false,
+    aiSummary:'관제 통신 장애로 판단됩니다. 정지 차량을 수동 견인해 통로를 확보하고, 관제 서버 재기동을 병행할 것을 권장합니다.',
+    opts:[
+      {t:'전 구역 AGV 비상정지 후 재기동', i:'전 구역 5분 정지 · 안전 확실', cap:0.4, uph:1.0, recoverIn:420},
+      {t:'정지 차량 무시하고 우회 경로 지정', i:'좁은 통로 병목 · 충돌 위험', cap:0.86, uph:0.9, safety:0.35, riskMsg:'우회 통로에서 AGV-작업자 접촉 위험 신고'},
+      {t:'정지분 수동 견인 + 관제 재기동', i:'통로 확보 3분 · 관제 병행', cap:0.8, uph:0.95, recoverIn:300}
+    ],
+    coach:[
+      ['가장 안전하지만 과잉 대응일 수 있습니다.','일부 통로 문제에 전 구역을 세우면 멀쩡한 구역까지 멈춥니다. 장애 범위를 먼저 파악하고 국소화하는 판단이 필요합니다.'],
+      ['통로는 뚫었지만 사람과 차가 섞였습니다.','통신 장애 상태의 AGV 근처에 우회 경로를 지정하면 위치 예측이 어긋나 접촉 사고가 납니다. 무인 설비의 이상 상황에서 사람을 가까이 두는 지시는 마지막에 재검토해야 합니다.'],
+      ['범위를 국소화하면서 원인도 함께 잡은 판단입니다.','정지분만 걷어내 통로를 확보하고 관제를 재기동하면, 정상 구역을 살린 채 복구할 수 있습니다.']
+    ]
+  },
+  PKG04:{
+    code:'PKG-04', cat:'equip', name:'자동포장기 필름 잼', kind:'설비 고장',
+    desc:'포장 라인 필름이 반복적으로 잼을 일으켜 출고 병목이 생깁니다.',
+    fireAt:540, zone:'PACK',
+    alarmTitle:'포장기 필름 잼 반복', alarmDetail:'2호기 잼 5회/10분 · 포장 대기 적체',
+    aiRec:0, aiTrap:false,
+    aiSummary:'필름 롤 장력 또는 규격 불일치가 의심됩니다. 2호기를 멈추고 롤 교체·장력 점검 후, 물량을 1·3호기로 분산할 것을 권장합니다.',
+    opts:[
+      {t:'2호기 정지·롤 교체 + 1·3호기로 분산', i:'포장능력 일시 -25% · 원인 제거', cap:0.8, uph:1.0, recoverIn:420},
+      {t:'잼 그때그때 풀며 계속 가동', i:'가동은 유지 · 잼 반복·손 끼임 위험', cap:0.72, uph:0.85, safety:0.4, riskMsg:'잼 제거 중 손 끼임 아차사고 발생'},
+      {t:'전량 수동 포장 전환', i:'처리 급감 · 라인 부담 없음', cap:0.55, uph:0.7}
+    ],
+    coach:[
+      ['원인을 제거하며 흐름도 유지한 판단입니다.','한 대를 세우는 손실보다, 잼이 계속 나며 갉아먹는 손실이 더 큽니다. 나머지 호기로 분산하면 포장이 멈추지 않습니다.'],
+      ['가동률에 집착하면 놓치는 위험입니다.','가동 중 설비에 손을 넣는 잼 제거는 끼임 사고의 대표 경로입니다. 반복 잼은 "그때그때"가 아니라 원인 제거로 끊어야 합니다.'],
+      ['부담은 없지만 느립니다.','수동 전환은 잠깐은 버티지만 물량이 많으면 곧 한계입니다. 설비를 살릴 수 있는데 사람으로만 버티는 것은 최선이 아닙니다.']
+    ]
+  },
+  /* ---------- 재고·데이터 ---------- */
+  INV07:{
+    code:'INV-07', cat:'inv', name:'A존 재고 불일치', kind:'재고·데이터',
+    desc:'전산상 재고는 있으나 실물이 없는 로케이션이 연속 발견됩니다.',
+    fireAt:420, zone:'A',
+    alarmTitle:'A존 재고 불일치 다발', alarmDetail:'피킹 실패 14건 연속 · 해당 로케이션 실물 없음',
+    aiRec:0, aiTrap:true,
+    aiSummary:'출고를 살리려면 대체 로케이션으로 즉시 재할당하는 것을 권장합니다. 재고 실사는 물량이 빠진 뒤 진행하십시오.',
+    opts:[
+      {t:'대체 로케이션 재할당', i:'지연 +4분 · 원인은 미해결', cap:0.94, uph:0.96, risk:0.5, riskZone:'B', riskMsg:'B존에서도 동일 불일치 발생 — 원인 미제거'},
+      {t:'해당 주문 후순위 이월', i:'마감에 유리 · 미출고 발생', cap:1.0, uph:1.0, unfilled:14},
+      {t:'A존 부분 실사 지시(핫스팟만)', i:'피킹 속도 20% 감소 · 원인 국소 회복', cap:0.82, uph:0.78, recoverIn:720}
+    ],
+    coach:[
+      ['빠른 처치였지만 원인을 덮었습니다.','같은 불일치가 다른 존에서 반복될 수 있습니다. 재할당은 오늘의 출고를 살리는 조치이지, 재고 정확도를 회복하는 조치가 아닙니다. 교대 인계 시 반드시 남겨야 합니다.'],
+      ['마감 지표는 지켰지만 미출고가 남았습니다.','이월된 주문은 다음 교대의 부담이 되고, 고객 약속은 이미 깨졌습니다. 지표상 성공과 실제 성공이 갈리는 지점입니다.'],
+      ['원인을 국소적으로 잡는 현실적인 절충입니다.','전수 실사는 마감 앞에서 무리지만, 불일치가 몰린 핫스팟만 부분 실사하면 원인을 줄이면서 출고도 이어갈 수 있습니다.']
+    ]
+  },
+  MIS11:{
+    code:'MIS-11', cat:'inv', name:'오피킹 신고 급증', kind:'재고·데이터',
+    desc:'유사 SKU 혼입으로 "다른 상품이 왔다"는 오출고 신고가 급증합니다.',
+    fireAt:600, zone:'A',
+    alarmTitle:'오출고 신고 급증', alarmDetail:'CS 오출고 접수 10분간 22건 · 특정 SKU군 집중',
+    aiRec:2, aiTrap:false,
+    aiSummary:'색상만 다른 유사 SKU 혼입 패턴입니다. 해당 SKU군에 대해 이중 스캔 검수를 즉시 적용할 것을 권장합니다.',
+    opts:[
+      {t:'신고 건만 재발송 처리', i:'CS 대응은 되나 원인 방치', cap:0.95, uph:1.0, risk:0.55, riskZone:'PACK', riskMsg:'오피킹 계속 발생 — 재발송 물량 눈덩이'},
+      {t:'해당 SKU 피킹 중단·전수 조사', i:'해당 라인 정지 · 확실한 차단', cap:0.7, uph:0.7, recoverIn:600},
+      {t:'유사 SKU군 이중 스캔 검수 적용', i:'검수 시간 +10% · 오출고 급감', cap:0.9, uph:0.9, recoverIn:360}
+    ],
+    coach:[
+      ['고객 불만은 껐지만 불은 계속 타고 있습니다.','재발송은 사후 수습일 뿐, 유사 SKU 혼입이라는 원인을 두면 오피킹이 계속 나옵니다. 원인 지점을 찾는 지시가 빠졌습니다.'],
+      ['확실하지만 과할 수 있습니다.','전수 조사는 원인은 잡지만 라인을 세워 손실이 큽니다. 오류가 특정 SKU군에 몰려 있다면 그 범위만 겨냥하는 편이 낫습니다.'],
+      ['원인 지점을 겨냥한 정밀한 대응입니다.','유사 SKU군에만 이중 스캔을 걸면, 전체를 세우지 않고도 오출고를 끊을 수 있습니다. 검수 부하는 늘지만 재발송·CS 비용을 줄입니다.']
+    ]
+  },
+  RTN09:{
+    code:'RTN-09', cat:'inv', name:'반품 폭증·반품존 포화', kind:'재고·데이터',
+    desc:'대형 셀러 반품이 한꺼번에 입고되어 반품존이 포화됩니다.',
+    fireAt:480, zone:'IN',
+    alarmTitle:'반품존 포화 임박', alarmDetail:'반품 트럭 3대 동시 도착 · 반품존 적치율 95%',
+    aiRec:1, aiTrap:false,
+    aiSummary:'반품 검수 인력이 부족합니다. 출고 피킹 인력 일부를 반품 검수로 일시 전환하고, 출고 우선순위는 유지할 것을 권장합니다.',
+    opts:[
+      {t:'반품 검수 뒤로 미루고 출고 집중', i:'출고 유지 · 반품존 완전 포화', cap:1.0, uph:1.0, risk:0.5, riskZone:'IN', riskMsg:'반품존 포화로 입고 통로까지 막힘'},
+      {t:'출고 인력 일부를 반품 검수로 전환', i:'출고 -12% · 반품존 숨통', cap:0.88, uph:0.9},
+      {t:'반품 전량 임시 적치존으로 이동', i:'검수 지연 · 임시존 혼선 위험', cap:0.95, uph:1.0, risk:0.35, riskMsg:'임시 적치 반품과 정상 재고 혼선'}
+    ],
+    coach:[
+      ['출고만 보면 맞지만, 막힌 곳이 결국 전체를 막습니다.','반품존이 완전히 포화되면 입고 통로까지 잠겨 정상 입고가 멈춥니다. 병목은 지금 당장 아프지 않은 곳에서 자랍니다.'],
+      ['출고를 조금 내주고 병목을 푼 판단입니다.','인력을 유연하게 재배치해 반품존의 숨통을 틔우면, 전체 흐름이 잠기는 것을 막을 수 있습니다. 출고 우선순위는 유지했습니다.'],
+      ['급한 불은 껐지만 혼선을 심었습니다.','임시 적치는 빠르지만, 반품과 정상 재고가 섞이면 나중에 더 큰 재고 오류로 돌아옵니다. 임시 조치엔 반드시 식별 표시가 따라야 합니다.']
+    ]
+  },
+  /* ---------- 인력·안전 ---------- */
+  HR06:{
+    code:'HR-06', cat:'hr', name:'교대조 결원', kind:'인력·안전',
+    desc:'야간조 결근이 겹쳐 피킹 인력이 정원보다 부족합니다.',
+    fireAt:300, zone:'C',
+    alarmTitle:'가용 인원 부족', alarmDetail:'배치 27명 → 21명 · 피킹 커버리지 부족',
+    aiRec:0, aiTrap:false,
+    aiSummary:'C존 커버리지가 가장 낮습니다. 저물량 구역 인원을 C존으로 재배치하고, 마감 임박 주문을 우선 처리할 것을 권장합니다.',
+    opts:[
+      {t:'저물량 구역 인원 C존 집중 재배치', i:'전체 균형 조정 · 처리 소폭 감소', cap:0.9, uph:1.05},
+      {t:'전원 잔업 요청으로 머릿수 유지', i:'처리 유지 · 피로·안전 위험', cap:0.98, uph:0.92, safety:0.4, riskMsg:'연속 근무 피로로 안전 아차사고 증가'},
+      {t:'출고 목표를 하향 조정하고 그대로', i:'무리 없음 · 마감 미달 확정', cap:0.82, uph:1.0, unfilled:8}
+    ],
+    coach:[
+      ['한정된 인원을 필요한 곳에 모은 기본기입니다.','전체를 똑같이 지키려다 아무 데도 못 지키는 것보다, 병목 구역에 집중하는 편이 낫습니다. 인당 생산성이 오히려 오릅니다.'],
+      ['머릿수는 채웠지만 사람을 갈아 넣었습니다.','잔업으로 버티는 방식은 당장의 지표는 지키지만 피로 누적이 사고로 이어집니다. 결원 대응에서 안전은 처리량보다 뒤에 두면 안 됩니다.'],
+      ['정직하지만 소극적입니다.','목표 하향이 필요한 날도 있습니다. 다만 재배치로 해결 가능한 폭이었는지, 미달을 먼저 받아들이기 전에 따져봐야 합니다.']
+    ]
+  },
+  SAF01:{
+    code:'SAF-01', cat:'hr', name:'지게차 접촉 아차사고', kind:'인력·안전',
+    desc:'지게차와 작업자가 접촉할 뻔한 아차사고가 발생했습니다.',
+    fireAt:360, zone:'B',
+    alarmTitle:'아차사고 발생', alarmDetail:'B존 교차로에서 지게차-작업자 접촉 직전 · 부상 없음',
+    aiRec:2, aiTrap:true,
+    aiSummary:'부상이 없으므로 운영 지속에 지장은 없습니다. 기록만 남기고 정상 운영을 유지할 것을 권장합니다.',
+    opts:[
+      {t:'해당 구역 즉시 정지·현장 확인', i:'B존 정지 5분 · 원인 확인', cap:0.72, uph:1.0, recoverIn:360},
+      {t:'속도 제한·유도자 배치 후 계속', i:'소폭 감속 · 재발 방지 병행', cap:0.9, uph:0.95},
+      {t:'기록만 남기고 정상 운영 유지', i:'처리 유지 · 재발 위험 방치', cap:1.0, uph:1.0, safety:0.6, riskMsg:'같은 교차로에서 접촉 사고 재발'}
+    ],
+    coach:[
+      ['안전을 최우선에 둔 판단입니다.','부상이 없어도 아차사고는 사고의 전조입니다. 잠깐 세우고 원인(동선·시야·속도)을 확인하는 것은 과잉이 아니라 표준입니다.'],
+      ['운영과 안전을 함께 챙긴 균형점입니다.','전면 정지까지는 아니어도, 속도 제한과 유도자 배치로 재발 경로를 끊으면 흐름을 유지하며 위험을 낮춥니다.'],
+      ['인공지능 제안을 그대로 따른, 가장 위험한 선택입니다.','"부상이 없으니 괜찮다"는 요약은 안전에서 가장 흔한 함정입니다. 아차사고를 기록만 하고 넘기면 다음엔 진짜 사고가 납니다. 인공지능이 운영 지속을 권해도, 안전 판단은 사람이 뒤집을 수 있어야 합니다.']
+    ]
+  },
+  /* ---------- 물량 ---------- */
+  VOL08:{
+    code:'VOL-08', cat:'vol', name:'기습 프로모션 물량 급증', kind:'물량',
+    desc:'예고 없는 프로모션으로 주문량이 평소의 2배로 급증합니다.',
+    fireAt:300, zone:'ALL',
+    alarmTitle:'주문량 급증', alarmDetail:'유입 물량 +110% · 전 구역 적체 상승',
+    aiRec:1, aiTrap:false,
+    aiSummary:'단시간 급증입니다. 피킹 경로를 묶음(배치) 피킹으로 전환해 이동 거리를 줄이고, 포장 인력을 증원할 것을 권장합니다.',
+    opts:[
+      {t:'선착순 그대로 처리', i:'변경 없음 · 적체 급상승', cap:0.85, uph:0.9, risk:0.5, riskZone:'PACK', riskMsg:'포장 병목으로 출고 적체 폭증'},
+      {t:'배치 피킹 전환 + 포장 증원', i:'경로 최적화 · 처리 효율 상승', cap:1.05, uph:1.15},
+      {t:'마감 임박 주문만 우선, 나머지 이월', i:'마감 방어 · 일부 미출고', cap:1.0, uph:1.0, unfilled:12}
+    ],
+    coach:[
+      ['평소 방식을 급증 상황에 그대로 쓰면 무너집니다.','물량이 2배가 되면 병목(대개 포장)이 먼저 터집니다. 방식을 바꾸지 않으면 앞단만 빨라지고 뒷단에서 막힙니다.'],
+      ['상황에 맞게 처리 방식을 바꾼 좋은 판단입니다.','묶음 피킹으로 이동을 줄이고 병목 지점에 인력을 더하면, 같은 인원으로 더 많이 처리합니다. 급증엔 "더 빨리"가 아니라 "다르게"가 답입니다.'],
+      ['확실한 마감 방어책입니다.','모두를 처리할 수 없다면 우선순위가 필요합니다. 다만 방식 개선으로 더 담을 수 있었는지, 이월을 택하기 전에 확인해야 합니다.']
+    ]
+  },
+  EXP03:{
+    code:'EXP-03', cat:'vol', name:'당일특송 컷오프 임박', kind:'물량',
+    desc:'당일특송 마감이 임박했는데 잔여 물량이 많습니다.',
+    fireAt:2400, zone:'SHIP',
+    alarmTitle:'특송 컷오프 20분 전', alarmDetail:'당일특송 잔여 340건 · 현 속도로는 마감 초과',
+    aiRec:0, aiTrap:false,
+    aiSummary:'현재 속도로는 컷오프를 넘깁니다. 특송 물량을 별도 라인으로 분리해 우선 상차하고, 일반 물량은 후순위로 미룰 것을 권장합니다.',
+    opts:[
+      {t:'특송 전용 라인 분리·우선 상차', i:'특송 방어 · 일반 물량 지연', cap:1.0, uph:1.05},
+      {t:'전 물량 균등 처리', i:'공평하나 특송 다수 마감 초과', cap:0.9, uph:1.0, unfilled:16},
+      {t:'택배사에 컷오프 연장 요청 후 그대로', i:'불확실 · 연장 실패 시 대량 초과', cap:0.9, uph:1.0, risk:0.5, riskMsg:'컷오프 연장 거절 — 특송 대량 마감 초과'}
+    ],
+    coach:[
+      ['마감이 다른 물량은 다르게 다뤄야 합니다.','컷오프가 임박한 특송을 일반 물량과 섞으면 둘 다 위태롭습니다. 시간 제약이 센 쪽을 분리해 먼저 태우는 것이 정석입니다.'],
+      ['공평함이 늘 최선은 아닙니다.','균등 처리는 마감이 촉박한 특송을 다수 놓칩니다. 자원이 부족할 때는 "공평"보다 "마감 리스크 순"이 맞습니다.'],
+      ['남의 선의에 마감을 맡긴 도박입니다.','컷오프 연장은 통제 밖 변수입니다. 요청은 하되, 거절될 경우를 대비한 분리 상차를 동시에 걸어야 합니다.']
+    ]
+  },
+  /* ---------- 전산·보안 ---------- */
+  SEC02:{
+    code:'SEC-02', cat:'sys', name:'창고관리시스템 다운', kind:'전산·보안',
+    desc:'전산 시스템이 응답하지 않습니다. 랜섬웨어 감염이 의심됩니다.',
+    fireAt:360, zone:'ALL',
+    alarmTitle:'창고관리시스템 전면 중단', alarmDetail:'단말 응답 없음 · 파일 암호화 정황 · 원인 미확인',
+    aiRec:1, aiTrap:true,
+    aiSummary:'운영 연속성을 위해 백업 서버로 즉시 절체할 것을 권장합니다. 복구 가능성이 가장 높습니다.',
+    opts:[
+      {t:'수기 대장으로 전환', i:'처리 속도 45% 감소 · 데이터 보존', cap:0.55, uph:0.55},
+      {t:'백업 서버로 즉시 절체', i:'복구 가능성 있음 · 감염 확산 위험', cap:0.72, uph:0.80, risk:0.6, riskZone:'ALL', riskMsg:'백업 서버까지 감염 확산 확인 — 복구 원천 상실'},
+      {t:'출고 전면 중단 후 상급 보고·격리', i:'마감 미준수 확정 · 피해 차단', cap:0.10, uph:0.10}
+    ],
+    coach:[
+      ['시스템이 죽어도 현장은 멈추지 않아야 한다는 원칙에 맞습니다.','다만 수기 전환은 평소 훈련된 조직만 할 수 있습니다. 대장 양식이 어디 있는지, 누가 집계하는지가 사고 당일 정해진다면 이미 늦습니다.'],
+      ['인공지능이 권했고, 가장 위험한 선택입니다.','감염 경로가 확인되지 않은 상태에서 백업으로 절체하면 백업까지 잃습니다. 운영을 살리려는 판단이 복구 가능성 자체를 없애는 경우입니다. 보안 사고에서 인공지능의 "빠른 복구" 제안은 특히 의심해야 합니다.'],
+      ['피해는 확실히 막았고, 마감은 확실히 놓쳤습니다.','이 선택의 옳고 그름은 현장관리자가 혼자 정할 수 없습니다. 보안 사고에서 진짜 역량은 대응 그 자체보다, 어느 선부터는 위로 올려야 하는지를 아는 것입니다.']
+    ],
+    note:'이 상황에는 정답이 없습니다. 세 선택 모두 무언가를 잃습니다.'
+  },
+  SCN10:{
+    code:'SCN-10', cat:'sys', name:'RF 스캐너 대량 먹통', kind:'전산·보안',
+    desc:'무선 RF 스캐너가 대량으로 먹통이 되어 검수·피킹 확인이 막힙니다.',
+    fireAt:420, zone:'A',
+    alarmTitle:'RF 스캐너 통신 장애', alarmDetail:'AP 한 대 다운 · 해당 구역 스캐너 30대 오프라인',
+    aiRec:2, aiTrap:false,
+    aiSummary:'특정 액세스포인트(AP) 장애로 범위가 국소적입니다. 정상 AP 구역으로 작업을 몰고, 장애 AP를 재기동할 것을 권장합니다.',
+    opts:[
+      {t:'전 구역 스캔검수 생략하고 진행', i:'속도 유지 · 오검수 급증 위험', cap:1.0, uph:1.0, risk:0.6, riskZone:'PACK', riskMsg:'검수 생략분에서 오출고 다발'},
+      {t:'전 구역 수기 대조 전환', i:'전체 대폭 감속 · 확실', cap:0.6, uph:0.6},
+      {t:'정상 AP 구역으로 작업 집중 + AP 재기동', i:'국소 우회 · 3분 내 복구', cap:0.85, uph:0.95, recoverIn:240}
+    ],
+    coach:[
+      ['속도를 위해 확인을 버리면 뒤에서 터집니다.','스캔 검수는 오출고를 막는 마지막 관문입니다. 전 구역에서 이를 생략하면 지금 빨라진 만큼 뒤에서 반품·CS로 되돌아옵니다.'],
+      ['안전하지만 범위를 과하게 잡았습니다.','장애가 AP 한 대에 국한됐는데 전 구역을 수기로 돌리면 멀쩡한 구역까지 느려집니다. 장애 범위 파악이 먼저입니다.'],
+      ['장애 범위를 정확히 읽은 판단입니다.','정상 AP 구역으로 작업을 몰아 흐름을 유지하면서 장애 AP만 재기동하면, 검수를 포기하지 않고도 빠르게 복구됩니다.']
+    ]
+  },
+  PWR01:{
+    code:'PWR-01', cat:'sys', name:'부분 정전', kind:'전산·보안',
+    desc:'특정 배전반이 정전되어 일부 구역의 설비·조명이 꺼집니다.',
+    fireAt:480, zone:'C',
+    alarmTitle:'C존 배전반 정전', alarmDetail:'C존 설비·조명 차단 · 비상등만 점등',
+    aiRec:0, aiTrap:false,
+    aiSummary:'정전 구역의 작업 안전이 우선입니다. C존 작업을 중지·대피시키고 물량을 정상 구역으로 우회한 뒤, 전기 복구를 요청할 것을 권장합니다.',
+    opts:[
+      {t:'C존 작업 중지·대피 후 타 구역 우회', i:'C존 정지 · 안전 확보', cap:0.78, uph:1.0, recoverIn:600},
+      {t:'비상등 아래 C존 작업 계속', i:'처리 유지 · 저조도 안전 위험', cap:0.92, uph:0.85, safety:0.55, riskMsg:'저조도 작업 중 낙하·전도 사고 위험'},
+      {t:'전 구역 정지 후 복구 대기', i:'과잉 · 전체 손실 큼', cap:0.3, uph:1.0, recoverIn:600}
+    ],
+    coach:[
+      ['정전 구역은 안전부터입니다.','조명·설비가 꺼진 구역에서 작업을 이어가는 것은 위험합니다. 사람을 빼고 물량을 우회시키는 것이 표준 순서입니다.'],
+      ['처리량을 위해 안전을 내준 선택입니다.','비상등만 켜진 저조도 환경은 낙하·전도 사고의 온상입니다. 설비가 꺼진 곳에서 "그래도 되는" 작업은 거의 없습니다.'],
+      ['국소 장애에 전체를 세운 과잉 대응입니다.','한 배전반 문제에 전 구역을 멈추면 멀쩡한 구역의 손실까지 떠안습니다. 범위를 국한하는 판단이 필요합니다.']
+    ]
+  },
+  /* ---------- 환경·외부 ---------- */
+  WEA04:{
+    code:'WEA-04', cat:'env', name:'폭설로 배송기사 부족', kind:'환경·외부',
+    desc:'폭설로 상차 대기 트럭이 부족해 출고가 적체됩니다.',
+    fireAt:600, zone:'SHIP',
+    alarmTitle:'상차 트럭 부족', alarmDetail:'폭설 · 도착 트럭 60% · 상차장 대기 물량 적체',
+    aiRec:1, aiTrap:false,
+    aiSummary:'외부 변수라 통제가 어렵습니다. 도착 트럭에 마감 임박·원거리 물량을 우선 상차하고, 지연 예상 주문은 고객 고지를 준비할 것을 권장합니다.',
+    opts:[
+      {t:'도착 순서대로 아무거나 상차', i:'단순하나 우선순위 없음', cap:0.95, uph:1.0, unfilled:10},
+      {t:'마감·원거리 우선 상차 + 지연 고지', i:'피해 최소화 · 일부 지연 관리', cap:0.95, uph:1.0},
+      {t:'상차 중단하고 트럭 정상화 대기', i:'상차장 포화 · 앞단까지 적체', cap:0.5, uph:1.0, risk:0.5, riskZone:'PACK', riskMsg:'상차장 포화로 포장·출고까지 정체'}
+    ],
+    coach:[
+      ['자원이 부족할 땐 순서가 곧 전략입니다.','도착 순서대로 아무거나 태우면, 정작 급한 원거리·마감 물량이 남습니다. 트럭이 귀할수록 무엇을 먼저 태울지가 중요합니다.'],
+      ['통제 밖 변수를 관리 가능한 범위로 좁힌 판단입니다.','폭설은 못 바꾸지만, 한정된 트럭에 무엇을 싣고 어떤 지연을 미리 알릴지는 통제할 수 있습니다. 고객 고지까지 챙긴 점이 좋습니다.'],
+      ['기다림이 상황을 악화시킵니다.','상차를 멈추면 상차장이 포화되고, 그 압력이 포장·피킹까지 거슬러 올라갑니다. 부족한 대로 흘려보내는 편이 낫습니다.']
+    ]
+  },
+  COLD07:{
+    code:'COLD-07', cat:'env', name:'콜드체인 온도 이탈', kind:'환경·외부',
+    desc:'냉장 구역 온도가 기준을 넘어 신선식품이 위험해집니다.',
+    fireAt:360, zone:'COLD',
+    alarmTitle:'냉장존 온도 상승', alarmDetail:'설정 4℃ → 11℃ · 냉동기 이상 · 신선식품 품질 위험',
+    aiRec:0, aiTrap:false,
+    aiSummary:'품질·안전이 최우선입니다. 냉장 재고를 예비 냉장고로 즉시 이전하고 냉동기 정비를 요청하며, 이탈 시간 재고는 격리·판정할 것을 권장합니다.',
+    opts:[
+      {t:'예비 냉장고 이전 + 정비 요청 + 이탈분 격리', i:'품질 방어 · 해당 물량 지연', cap:0.85, uph:0.95, recoverIn:480},
+      {t:'온도 회복 기대하고 그대로 출고', i:'처리 유지 · 변질 상품 출고 위험', cap:1.0, uph:1.0, safety:0.6, riskMsg:'변질 위험 상품 출고 — 회수·클레임 발생'},
+      {t:'냉장 전 품목 폐기 처리', i:'위험 원천 제거 · 손실 과다', cap:0.9, uph:1.0, unfilled:14}
+    ],
+    coach:[
+      ['품질과 흐름을 함께 지킨 정석입니다.','온도 이탈은 되돌릴 수 없는 품질 문제입니다. 재고를 옮겨 추가 이탈을 막고, 이탈 시간 재고만 격리해 판정하면 손실을 최소화합니다.'],
+      ['출고 숫자를 위해 안전을 건 선택입니다.','"곧 회복되겠지"라는 기대는 식품 안전에서 가장 위험한 판단입니다. 변질 위험 상품이 나가면 회수·클레임·신뢰 손실이 처리량보다 훨씬 큽니다.'],
+      ['안전하지만 과합니다.','이탈 시간·품목에 따라 살릴 수 있는 재고가 있습니다. 전량 폐기 전에 격리·판정 절차를 먼저 밟아야 손실을 줄입니다.']
+    ]
+  },
+  HAZ05:{
+    code:'HAZ-05', cat:'env', name:'위험물 소량 누출', kind:'환경·외부',
+    desc:'화학류 상품이 파손되어 소량 누출, 구역 격리가 필요합니다.',
+    fireAt:420, zone:'IN',
+    alarmTitle:'위험물 누출 감지', alarmDetail:'입고 검수 중 화학류 파손 · 자극성 냄새 · 소량 누출',
+    aiRec:2, aiTrap:false,
+    aiSummary:'인체 안전이 절대 우선입니다. 해당 구역을 즉시 격리·환기하고 MSDS 절차에 따라 대응하며, 물량은 타 구역으로 우회할 것을 권장합니다.',
+    opts:[
+      {t:'냄새 심하지 않으니 계속 작업', i:'처리 유지 · 노출·안전 위험 큼', cap:1.0, uph:1.0, safety:0.7, riskMsg:'작업자 화학물질 노출 신고 — 보건 사고'},
+      {t:'해당 팔레트만 치우고 계속', i:'부분 조치 · 잔류·확산 위험', cap:0.92, uph:0.95, safety:0.4, riskMsg:'잔류 물질로 인접 작업자 이상 증상'},
+      {t:'구역 격리·환기 + MSDS 절차 + 우회', i:'해당 구역 정지 · 안전 확보', cap:0.75, uph:1.0, recoverIn:540}
+    ],
+    coach:[
+      ['가장 위험한, 절대 피해야 할 선택입니다.','"냄새가 심하지 않다"는 감각적 판단으로 화학물질 노출을 넘기면 보건 사고로 직결됩니다. 위험물에서 운영 지속은 안전 확인 다음입니다.'],
+      ['조치하는 척했지만 위험을 남겼습니다.','파손 팔레트만 치워도 잔류·휘발 물질은 남습니다. 격리와 환기 없이 인접 작업을 이어가는 것은 위험합니다.'],
+      ['절차대로 사람부터 지킨 판단입니다.','위험물은 MSDS 기준 격리·환기·보고가 원칙입니다. 구역을 세우는 손실보다 노출 사고의 대가가 비교할 수 없이 큽니다.']
+    ],
+    note:'위험물·보건 상황에서 처리량은 안전 다음입니다.'
+  }
+};
+
+const LVLTXT={
+  1:'경보만 뜨고 선택지는 주어지지 않습니다. 학습자가 스스로 조치를 떠올려야 합니다.',
+  2:'인공지능이 상황을 요약하고 조치를 제안하며, 학습자가 검증한 뒤 고릅니다. 제안이 틀릴 수 있습니다.',
+  3:'인공지능이 12초 뒤 스스로 조치합니다. 학습자는 그 전에 개입할 수 있습니다.'
+};
+const ZONES=[
+  {id:'IN',nm:'입고·검수'},{id:'A',nm:'A존 피킹'},{id:'B',nm:'B존 피킹'},
+  {id:'C',nm:'C존 피킹'},{id:'SRT',nm:'자동분류'},{id:'CV',nm:'컨베이어'},
+  {id:'PACK',nm:'포장'},{id:'SHIP',nm:'상차·출고'},{id:'COLD',nm:'냉장·신선'}
+];
+
+let scn='CV03', lvl=2, sp=1, role='lead', catFilter='all';
+let S=null, timer=null, autoTimer=null;
+
+const $=id=>document.getElementById(id);
+const fmt=s=>{s=Math.max(0,Math.round(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const scnList=()=>Object.entries(SCEN).filter(([k,v])=>catFilter==='all'||v.cat===catFilter);
+
+function paintCats(){
+  const counts={all:Object.keys(SCEN).length};
+  Object.values(SCEN).forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  $('catRow').innerHTML=Object.entries(CAT).map(([k,label])=>
+    `<button data-c="${k}" aria-pressed="${k===catFilter}">${label} <span class="mono" style="opacity:.6">${counts[k]||0}</span></button>`).join('');
+  $('catRow').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    catFilter=b.dataset.c;
+    if(!scnList().some(([k])=>k===scn)){const first=scnList()[0];if(first)scn=first[0];}
+    paintCats();paintScenarios();
+  });
+  $('scnTotal').textContent=Object.keys(SCEN).length;
+}
+function paintScenarios(){
+  $('scnGrid').innerHTML=scnList().map(([k,v])=>`
+    <button class="scn" data-k="${k}" aria-pressed="${k===scn}">
+      <div class="code">${v.code}</div>
+      <div class="nm">${v.name}</div>
+      <div class="ds">${v.desc}</div>
+      <div class="tag">${v.kind}</div>
+    </button>`).join('');
+  $('scnGrid').querySelectorAll('.scn').forEach(b=>b.onclick=()=>{scn=b.dataset.k;paintScenarios()});
+}
+function paintRoles(){
+  $('roleRow').innerHTML=ROLES.map(r=>`
+    <button class="role" data-r="${r.id}" aria-pressed="${r.id===role}">
+      <div class="rn">${r.nm}</div><div class="rd">${r.rd}</div></button>`).join('');
+  $('roleRow').querySelectorAll('.role').forEach(b=>b.onclick=()=>{role=b.dataset.r;paintRoles()});
+}
+function paintLevel(){
+  $('lvlSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.l===lvl)));
+  $('lvlDesc').textContent=LVLTXT[lvl];
+}
+$('lvlSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{lvl=+b.dataset.l;paintLevel()});
+document.querySelectorAll('.speed button').forEach(b=>b.onclick=()=>{
+  sp=+b.dataset.sp;
+  document.querySelectorAll('.speed button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.sp===sp)));
+});
+
+function log(t,tx,cls){
+  const d=document.createElement('div');
+  d.className='row'+(cls?' '+cls:'');
+  d.innerHTML=`<span class="tm">${fmt(t)}</span><span class="tx">${tx}</span>`;
+  $('log').appendChild(d); $('log').scrollTop=$('log').scrollHeight;
+}
+
+function start(){
+  const v=SCEN[scn];
+  S={t:0,cut:3600,backlog:9,cap:1,uph:1,safety:0,unfilled:0,
+     fired:false,acked:false,decided:false,choice:-1,intervened:false,
+     ttd:null,ttr:null,recoverAt:null,riskDone:false,zoneState:{},riskZone2Down:null};
+  ZONES.forEach(z=>S.zoneState[z.id]='ok');
+  const roleObj=ROLES.find(r=>r.id===role);
+  $('runTitle').textContent='대구 남구 FC · 주간 2교대';
+  $('runMeta').textContent=v.code+' · L'+lvl+' · '+(roleObj?roleObj.nm:'');
+  $('log').innerHTML=''; $('alarm').classList.add('hidden');
+  $('s-intro').classList.add('hidden'); $('s-aar').classList.add('hidden');
+  $('s-run').classList.remove('hidden');
+  log(0,'교대 시작 · 인원 27명 배치 완료 · 역할: '+(roleObj?roleObj.nm:''));
+  log(0,'출고 목표 2,540건 · 마감 60분');
+  render();
+  clearInterval(timer);
+  timer=setInterval(tick,500);
+}
+
+function tick(){
+  const v=SCEN[scn];
+  for(let i=0;i<sp;i++){
+    if(!S) return;
+    S.t+=20;
+    const dtMin=20/60;
+    const inflow=42+Math.sin(S.t/300)*4;
+    const thru=45*S.cap;
+    S.backlog=Math.max(0,S.backlog+(inflow-thru)*dtMin);
+
+    if(S.recoverAt&&S.t>=S.recoverAt){
+      S.recoverAt=null;S.cap=1;S.uph=1;
+      if(v.zone==='ALL')ZONES.forEach(z=>S.zoneState[z.id]='ok');
+      else S.zoneState[v.zone]='ok';
+      if(S.riskZone2Down){S.zoneState[S.riskZone2Down]='ok';S.riskZone2Down=null;}
+      log(S.t,'복구 완료 · 정상 운영 재개','act');
+    }
+    if(!S.fired&&S.t>=v.fireAt) fire();
+    if(S.decided&&!S.riskDone&&S.t>=S.decidedAt+300) rollRisk();
+    if(S.t>=S.cut){finish();return}
+    if(S.t%180===0&&!S.fired) log(S.t,'정상 운영 · 적체 '+Math.round(S.backlog)+'건');
+  }
+  render();
+}
+
+function fire(){
+  const v=SCEN[scn];
+  S.fired=true; S.firedAt=S.t;
+  if(v.zone==='ALL'){ZONES.forEach(z=>S.zoneState[z.id]='off');S.cap=0.35;}
+  else {S.zoneState[v.zone]='down';S.cap=0.72;}
+  log(S.t,'경보 · '+v.alarmTitle,'hi');
+  $('alarmBody').innerHTML=`
+    <div class="alarm-head">
+      <span class="ttl">${v.alarmTitle}</span>
+      <span class="el mono" id="elap">경과 00:00</span>
+    </div>
+    <p class="dtl">${v.alarmDetail}</p>
+    <button class="ack" id="btnAck">상황 확인</button>`;
+  $('alarm').classList.remove('hidden');
+  $('btnAck').onclick=ack;
+}
+
+function optsHtml(v,showImpact){
+  return `<div class="opts">`+v.opts.map((o,i)=>
+    `<button class="opt" data-i="${i}"><div class="ot">${'ABC'[i]} · ${o.t}</div>${showImpact?`<div class="oi">${o.i}</div>`:''}${(showImpact&&i===v.aiRec)?`<span class="rec">AI 추천</span>`:''}</button>`
+  ).join('')+`</div>`;
+}
+function aisumHtml(v){
+  return `<div class="aisum"><div class="ah">AI 상황 요약·제안</div>${v.aiSummary}
+    <div class="verify">⚠ 인공지능 제안은 틀릴 수 있습니다. 검증한 뒤 선택하십시오.</div></div>`;
+}
+
+function ack(){
+  const v=SCEN[scn];
+  S.acked=true; S.ttd=S.t-S.firedAt;
+  log(S.t,'현장관리자 상황 인지 (탐지 '+fmt(S.ttd)+')','act');
+  let h=`<div class="alarm-head"><span class="ttl">${v.alarmTitle}</span><span class="el mono" id="elap">경과 ${fmt(S.ttd)}</span></div>`;
+
+  if(lvl>=2){
+    log(S.t,'AI 제안 · '+v.opts[v.aiRec].t,'aim');
+    h+=aisumHtml(v);
+  }
+  if(lvl===1){
+    h+=`<p class="optlabel">인공지능 개입 없음. 조치를 직접 판단해 지시하십시오.</p>`;
+    h+=optsHtml(v,false);
+  }else if(lvl===3){
+    h+=`<div class="autobar"><span>인공지능이 <b>${v.opts[v.aiRec].t}</b>을(를) 자동 실행합니다</span>
+        <span class="cd" id="cd">12초</span>
+        <button id="btnStop">개입한다</button></div>`;
+  }else{
+    h+=`<p class="optlabel">하나를 선택하십시오 — 'AI 추천'을 그대로 믿지 마십시오</p>`;
+    h+=optsHtml(v,true);
+  }
+  $('alarmBody').innerHTML=h;
+  if(lvl===3){
+    let n=12;
+    autoTimer=setInterval(()=>{
+      n--; const e=$('cd'); if(e)e.textContent=n+'초';
+      if(n<=0){clearInterval(autoTimer);decide(v.aiRec,true)}
+    },1000);
+    $('btnStop').onclick=()=>{
+      clearInterval(autoTimer);
+      S.intervened=true;
+      let h2=`<div class="alarm-head"><span class="ttl">${v.alarmTitle}</span><span class="el mono">경과 ${fmt(S.t-S.firedAt)}</span></div>`;
+      h2+=aisumHtml(v);
+      h2+=`<p class="optlabel">개입 · 직접 선택하십시오</p>`+optsHtml(v,true);
+      $('alarmBody').innerHTML=h2;
+      bindOpts();
+    };
+  }else{
+    bindOpts();
+  }
+}
+function bindOpts(){
+  document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>decide(+b.dataset.i,false));
+}
+
+function decide(i,auto){
+  if(S.decided) return;
+  const v=SCEN[scn], o=v.opts[i];
+  S.decided=true; S.choice=i; S.auto=auto; S.decidedAt=S.t;
+  S.followedAi=(i===v.aiRec);
+  S.ttr=S.t-S.firedAt;
+  S.cap=o.cap; S.uph=o.uph;
+  if(o.unfilled) S.unfilled+=o.unfilled;
+  if(o.recoverIn) S.recoverAt=S.t+o.recoverIn;
+  else {
+    if(v.zone==='ALL')ZONES.forEach(z=>S.zoneState[z.id]= o.cap>0.5?'busy':'off');
+    else S.zoneState[v.zone]= o.cap>0.85?'busy':'down';
+  }
+  log(S.t,(auto?'인공지능 자동 조치 · ':'조치 지시 · ')+o.t,'act');
+  $('alarmBody').innerHTML=`
+    <div class="alarm-head"><span class="ttl" style="color:var(--go)">조치 실행 중</span>
+    <span class="el mono">대응 ${fmt(S.ttr)}</span></div>
+    <p class="dtl"><b>${'ABC'[i]} · ${o.t}</b> — ${o.i}</p>`;
+}
+
+function rollRisk(){
+  const o=SCEN[scn].opts[S.choice]; S.riskDone=true;
+  if(o.risk&&Math.random()<o.risk){
+    log(S.t,o.riskMsg,'hi');
+    S.cap*=0.8;
+    if(o.riskZone&&o.riskZone!=='ALL'){S.zoneState[o.riskZone]='down';S.riskZone2Down=o.riskZone;}
+    S.sideEffect=o.riskMsg;
+  }
+  if(o.safety&&Math.random()<o.safety){
+    S.safety++; log(S.t,o.riskMsg,'hi'); S.sideEffect=o.riskMsg;
+  }
+}
+
+function render(){
+  $('elapsed').textContent=fmt(S.t);
+  const rem=S.cut-S.t, c=$('cutoff');
+  c.textContent=fmt(rem);
+  c.className='val mono'+(rem<600?' crit':rem<1500?' warn':'');
+  if(S.fired&&!S.acked){const e=$('elap');if(e)e.textContent='경과 '+fmt(S.t-S.firedAt)}
+
+  $('zones').innerHTML=ZONES.map(z=>{
+    const st=S.zoneState[z.id];
+    const load=st==='down'||st==='off'?0:Math.round(38+Math.sin((S.t+z.id.length*90)/240)*11);
+    const txt=st==='down'?'정지':st==='off'?'중단':st==='busy'?'과부하':'정상';
+    return `<div class="zone ${st}"><div class="zn">${z.id}</div>
+      <div class="zv">${st==='down'||st==='off'?'—':load}</div>
+      <div class="zs">${z.nm} · ${txt}</div></div>`;
+  }).join('');
+
+  const uph=Math.round(148*S.uph*(S.cap>0.9?1:0.94));
+  const bl=Math.round(S.backlog);
+  $('stats').innerHTML=`
+    <div class="stat"><div class="sl">적체 건수</div><div class="sv ${bl>30?'bad':bl<15?'good':''}">${bl}</div></div>
+    <div class="stat"><div class="sl">시간당 처리</div><div class="sv ${uph<120?'bad':''}">${uph}</div></div>
+    <div class="stat"><div class="sl">미출고</div><div class="sv ${S.unfilled>0?'bad':'good'}">${S.unfilled}</div></div>
+    <div class="stat"><div class="sl">안전 위반</div><div class="sv ${S.safety>0?'bad':'good'}">${S.safety}</div></div>`;
+}
+
+function finish(){
+  clearInterval(timer); clearInterval(autoTimer);
+  const v=SCEN[scn];
+  const bl=Math.round(S.backlog);
+  const met=bl<=20&&S.unfilled===0&&S.safety===0;
+  $('s-run').classList.add('hidden'); $('s-aar').classList.remove('hidden');
+  $('aarTitle').textContent=v.code+' · '+v.name;
+  $('aarSub').innerHTML=`인공지능 개입 수준 L${lvl}${S.intervened?' (자동 조치에 개입함)':''} · 선택 ${S.choice>=0?'ABC'[S.choice]+' · '+v.opts[S.choice].t:'조치 없음'}`;
+  $('aarScore').innerHTML=`
+    <div class="sc"><div class="l">상황 인지</div><div class="v">${S.ttd!=null?fmt(S.ttd):'—'}</div></div>
+    <div class="sc"><div class="l">대응 완료</div><div class="v">${S.ttr!=null?fmt(S.ttr):'—'}</div></div>
+    <div class="sc"><div class="l">잔여 적체</div><div class="v">${bl}</div></div>
+    <div class="sc"><div class="l">미출고</div><div class="v">${S.unfilled}</div></div>
+    <div class="sc"><div class="l">안전 위반</div><div class="v">${S.safety}</div></div>`;
+  let html=`<p><span class="verdict ${met?'ok':'no'}">${met?'마감 준수':'마감·안전 미달'}</span></p>`;
+  if(S.choice>=0){
+    html+=v.coach[S.choice].map(p=>`<p>${p}</p>`).join('');
+  }else{
+    html+=`<p>끝까지 조치를 내리지 않았습니다. 판단을 미루는 것도 하나의 선택이며, 그 비용은 적체로 남았습니다.</p>`;
+  }
+  if(S.sideEffect) html+=`<p>또한 <b>${S.sideEffect}</b> — 첫 조치가 만든 2차 영향입니다. 조치 후 15분간의 관찰이 대응의 일부입니다.</p>`;
+  if(v.note) html+=`<p><b>${v.note}</b> 사후 검토에서는 어떤 선택을 했는지보다, 무엇을 포기했는지 설명할 수 있는가를 봅니다.</p>`;
+  $('aarCoach').innerHTML=html;
+
+  // 인공지능 사용 검토
+  const aiBox=$('aarAiBox'), aiEl=$('aarAi');
+  if(lvl===1||S.choice<0){
+    aiBox.classList.add('hidden');
+  }else{
+    aiBox.classList.remove('hidden');
+    let ai='';
+    const trap=v.aiTrap;
+    if(S.followedAi&&trap){
+      ai=`<p>인공지능 추천(<b>${v.opts[v.aiRec].t}</b>)을 그대로 따랐고, 이번 제안은 <b>일부러 심어 둔 잘못된 제안</b>이었습니다. 그럴듯한 요약일수록 검증 없이 통과되며, 바로 그 지점이 이 훈련의 핵심입니다.</p>
+           <p>인공지능은 상황을 빠르게 정리해 주지만 책임은 지지 않습니다. "왜 이 제안이 맞는가"를 스스로 확인한 뒤 선택하는 습관이 팀캡틴의 진짜 역량입니다.</p>`;
+    }else if(S.followedAi&&!trap){
+      ai=`<p>인공지능 추천(<b>${v.opts[v.aiRec].t}</b>)을 따랐고, 이번 경우 그 제안은 타당했습니다. 다만 "결과가 좋았다"와 "검증하고 골랐다"는 다릅니다.</p>
+          <p>같은 상황을 L1로도 돌려 보십시오. 제안 없이도 같은 판단에 도달하는지가, 인공지능에 기대는지 활용하는지를 가릅니다.</p>`;
+    }else{
+      ai=`<p>인공지능 추천(<b>${v.opts[v.aiRec].t}</b>)을 따르지 않고 <b>${v.opts[S.choice].t}</b>을(를) 택했습니다. ${trap?'이번 추천은 일부러 심어 둔 잘못된 제안이었고, 그것을 걸러낸 판단입니다.':'제안을 의심하고 스스로 판단한 점은 좋습니다 — 다만 이번 추천은 나쁘지 않았습니다. 무조건 반대도 검증이 아닙니다.'}</p>`;
+    }
+    if(S.auto&&!S.intervened){
+      ai+=`<p>이번 회차는 인공지능이 스스로 조치했고(L3), 학습자는 개입하지 않았습니다. 자동화 수준이 높을수록, 개입하지 않기로 한 것도 하나의 결정입니다.</p>`;
+    }
+    aiEl.innerHTML=ai;
+  }
+}
+
+$('btnStart').onclick=start;
+$('btnRetry').onclick=start;
+$('btnHome').onclick=()=>{clearInterval(timer);clearInterval(autoTimer);
+  $('s-aar').classList.add('hidden');$('s-run').classList.add('hidden');$('s-intro').classList.remove('hidden')};
+
+paintCats(); paintScenarios(); paintRoles(); paintLevel();
+</script>
+</body>
+</html>
